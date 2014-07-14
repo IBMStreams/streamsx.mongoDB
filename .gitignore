@@ -1,0 +1,22 @@
+# project specific excludes
+com.ibm.streamsx.mongodb/doc
+com.ibm.streamsx.mongodb/impl/include/boost
+com.ibm.streamsx.mongodb/samples
+
+samples/*/output
+samples/*/toolkit.xml
+/samples/*/doc
+index.*
+
+# begin streamsx.mongodb excluded
+.settings
+.toolkitList
+
+## C++ excludes
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Soft links boost shared libraries
+libboost*.so
