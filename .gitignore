@@ -1,10 +1,8 @@
 # project specific excludes
 com.ibm.streamsx.mongodb/doc
-com.ibm.streamsx.mongodb/impl/include/boost
 com.ibm.streamsx.mongodb/samples
 
-samples/*/output
-samples/*/toolkit.xml
+samples
 /samples/*/doc
 index.*
 
