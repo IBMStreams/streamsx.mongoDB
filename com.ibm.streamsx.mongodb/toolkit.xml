@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="3.2.1.1" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="3.2.1.1" version="1.0.0">
+    <description/>
+    <uriTable>
+      <uri index="1" value="com.ibm.streamsx.mongodb/Insert"/>
+    </uriTable>
+    <namespace name="com.ibm.streamsx.mongodb">
+      <primitiveOp language="Cpp" modelUriIndex="1" name="Insert" public="true">
+        <description/>
+        <outputFunctions name="MongoFS">
+          <function name="AsIs" returnType="T">
+            <description/>
+            <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
+            <parameter name="v" type="T"/>
+          </function>
+          <function name="InsertRow" returnType="rstring">
+            <description/>
+            <prototype>&lt;any T&gt; rstring InsertRow(rstring db, rstring collection, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="InsertRow" returnType="rstring">
+            <description/>
+            <prototype>&lt;any T&gt; rstring InsertRow(rstring db, rstring collection, rstring key, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+        </outputFunctions>
+        <parametersDescription/>
+        <parameter cardinality="1" expressionMode="Expression" name="dbHost" optional="false" type="rstring">
+          <description/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="dbPort" optional="true" type="uint32">
+          <description/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="autoReconnect" optional="true" type="boolean">
+          <description/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="timeout" optional="true" type="float64">
+          <description/>
+        </parameter>
+        <inputPort minNumPorts="0" optional="true" windowPunctInputMode="WindowBound">
+          <description/>
+          <windowPolicy>OptionallyWindowed</windowPolicy>
+        </inputPort>
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
+          <description/>
+        </outputPort>
+      </primitiveOp>
+    </namespace>
+  </toolkit>
+
+</toolkitModel>

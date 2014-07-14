@@ -1,0 +1,109 @@
+<%SPL::CodeGen::implementationPrologue($model);%>
+
+<%
+#	use Data::Dumper;
+	use InsertCommon;
+
+	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
+	my $dbPortParam = $model->getParameterByName('dbPort');
+	
+	my $autoReconnectParam = $model->getParameterByName('autoReconnect');
+	my $autoReconnect = (defined $autoReconnectParam) ? $autoReconnectParam->getValueAt(0)->getCppExpression() : 'true';
+	
+	my $timeoutParam = $model->getParameterByName('timeout');
+	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0;
+
+	my $inputPort = $model->getInputPortAt(0);
+	my $outputPort = $model->getOutputPortAt(0);
+	my $inTuple = $inputPort->getCppTupleName();
+%>
+
+MY_OPERATOR::MY_OPERATOR() : conn_(<%=$autoReconnect%>, NULL, <%=$timeout%>) {
+	try {
+		string connUrl = <%=$dbHost%>;
+		<%if (defined $dbPortParam) {
+		  my $dbPort = $dbPortParam->getValueAt(0)->getCppExpression();%>
+		  connUrl += ":"; 
+		  connUrl += spl_cast<rstring,uint32_t>::cast(<%=$dbPort%>);
+		<%}%> 
+		conn_.connect(connUrl);
+	}
+	catch( const DBException &e ) {
+		THROW(SPL::SPLRuntimeOperator, e.what());
+	}
+}
+
+MY_OPERATOR::~MY_OPERATOR() {}
+
+void MY_OPERATOR::allPortsReady() {}
+void MY_OPERATOR::prepareToShutdown() {}
+
+void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
+	IPort0Type const & <%=$inTuple%> = static_cast<IPort0Type const&>(tuple);
+	streams_boost::shared_ptr<OPort0Type> otuplePtr;
+	bool errorFound = false;
+
+	<% foreach my $attribute (@{$outputPort->getAttributes()}) {
+	  my $name = $attribute->getName();
+	  if ($attribute->hasAssignmentWithOutputFunction()) {
+		  my $operation = $attribute->getAssignmentOutputFunctionName();
+		  if ($operation eq 'AsIs') {
+			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
+		  %>
+			otuplePtr->set_<%=$name%>(<%=$init%>);
+		  <%}
+		  else {
+			%>
+		{
+			string dbCollection(<%=$attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()%>);
+			dbCollection += ".";
+			dbCollection += <%=$attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()%>;
+			<%
+			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
+			my $key = 'defaultKey';
+			my $keyAssigned = @{$attribute->getAssignmentOutputFunctionParameterValues} > 3;
+			if ($keyAssigned) {
+				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2)->getCppExpression();
+				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3);
+			}
+			my $exprLocation = $expr->getSourceLocation();
+			my $cppExpr = $expr->getCppExpression();
+			my $splType = $expr->getSPLType();
+			
+			if ($keyAssigned) {
+				if (SPL::CodeGen::Type::isPrimitive($splType)) {
+					my $value = InsertCommon::handlePrimitive($exprLocation, $cppExpr, $splType);%>
+					BSONObjBuilder b0;
+					b0.append(<%=$key%>, <%=$value%>); 
+				<%}
+				else {
+					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 1);%>
+					BSONObjBuilder b0;
+					b0.<%=$appendFunction%>(<%=$key%>, b1.<%=$objFunction%>());
+				<%}
+			}
+			else {
+				if (InsertCommon::keyLess($splType)) {
+					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $splType, $expr->getSPLExpression(), $exprLocation) unless ($keyAssigned);
+				}
+				InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 0);
+			}
+			%>
+			conn_.insert(dbCollection, b0.obj());
+			const rstring errorMsg = conn_.DBClientWithCommands::getLastError();
+			if (errorMsg != "") {
+				errorFound = true;
+				SPLAPPLOG(L_ERROR, error, "MongoDBInsert");
+				if(!otuplePtr){
+					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());
+				}
+				otuplePtr->set_<%=$name%>(errorMsg);
+			}
+		}
+		  <%}
+	  }
+	}%>
+	if(errorFound) submit(*otuplePtr, 0);
+}
+
+<%SPL::CodeGen::implementationEpilogue($model);%>

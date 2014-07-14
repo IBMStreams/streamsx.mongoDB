@@ -1,0 +1,27 @@
+#include <streams_boost/shared_ptr.hpp>
+#include <streams_boost/typeof/typeof.hpp>
+#include "mongo/client/dbclient.h"
+
+using std::string;
+using streams_boost::shared_ptr;
+using namespace mongo;
+
+<%SPL::CodeGen::headerPrologue($model);%>
+
+class MY_OPERATOR: public MY_BASE_OPERATOR {
+
+public:
+	MY_OPERATOR();
+	virtual ~MY_OPERATOR();
+
+	void allPortsReady();
+	void prepareToShutdown();
+
+	void process(Tuple const & tuple, uint32_t port);
+
+private:
+	DBClientConnection conn_;
+
+};
+
+<%SPL::CodeGen::headerEpilogue($model);%>
