@@ -3,8 +3,9 @@ com.ibm.streamsx.mongodb/doc
 com.ibm.streamsx.mongodb/impl/include/boost
 com.ibm.streamsx.mongodb/samples
 
-samples
-/samples/*/doc
+samples/*/doc
+samples/*/output
+samples/*/toolkit.xml
 index.*
 
 # begin streamsx.mongodb excluded
