@@ -12,11 +12,11 @@
           </function>
           <function pseudoFunction="true">
             <description></description>
-            <prototype>&lt;any T> rstring InsertRow(rstring db, rstring collection, T data)</prototype>
+            <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
             <description></description>
-            <prototype>&lt;any T> rstring InsertRow(rstring db, rstring collection, rstring key, T data)</prototype>
+            <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
         </customOutputFunction>
       </customOutputFunctions>
@@ -24,9 +24,6 @@
         <library>
           <cmn:description></cmn:description>
           <cmn:managedLibrary>
-            <cmn:lib>boost_system-mt</cmn:lib>
-            <cmn:lib>boost_filesystem-mt</cmn:lib>
-            <cmn:lib>boost_thread-mt</cmn:lib>
             <cmn:lib>mongoclient</cmn:lib>
             <cmn:libPath>../../impl/lib</cmn:libPath>
             <cmn:includePath>../../impl/include</cmn:includePath>

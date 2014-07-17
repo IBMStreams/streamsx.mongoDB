@@ -148,7 +148,7 @@ namespace mongo {
 
 #define _ATOMIC_WORD_DECLARE(NAME, WTYPE)                               \
     typedef class AtomicWord<WTYPE> NAME;                               \
-    namespace { BOOST_STATIC_ASSERT(sizeof(NAME) == sizeof(WTYPE)); }
+    namespace { STREAMS_BOOST_STATIC_ASSERT(sizeof(NAME) == sizeof(WTYPE)); }
 
     _ATOMIC_WORD_DECLARE(AtomicUInt32, unsigned);
     _ATOMIC_WORD_DECLARE(AtomicUInt64, unsigned long long);

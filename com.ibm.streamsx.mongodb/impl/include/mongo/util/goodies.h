@@ -103,11 +103,11 @@ namespace mongo {
             ((x & 0xff000000) >> 24);
     }
 
-#if defined(BOOST_LITTLE_ENDIAN)
+#if defined(STREAMS_BOOST_LITTLE_ENDIAN)
     inline unsigned long fixEndian(unsigned long x) {
         return x;
     }
-#elif defined(BOOST_BIG_ENDIAN)
+#elif defined(STREAMS_BOOST_BIG_ENDIAN)
     inline unsigned long fixEndian(unsigned long x) {
         return swapEndian(x);
     }

@@ -9,6 +9,8 @@ sub main::generate($$) {
    $SPL::CodeGenHelper::verboseMode = $model->getContext()->isVerboseModeOn();
    print '#include <streams_boost/shared_ptr.hpp>', "\n";
    print '#include <streams_boost/typeof/typeof.hpp>', "\n";
+   print 'namespace boost = streams_boost;', "\n";
+   print "\n";
    print '#include "mongo/client/dbclient.h"', "\n";
    print "\n";
    print 'using std::string;', "\n";

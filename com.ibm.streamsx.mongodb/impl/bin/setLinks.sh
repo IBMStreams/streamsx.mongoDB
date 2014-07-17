@@ -1,13 +1,7 @@
 #! /bin/bash
 
-if [[ ! -L ../../impl/lib/libboost_filesystem-mt.so ]]; then
-	ln -s libboost_filesystem-mt.so.5 ../../impl/lib/libboost_filesystem-mt.so
-fi
+MONGODB_TOOLKIT=$(echo ${STREAMS_STUDIO_SPL_PATH} | grep -oP '/[^:]*com.ibm.streamsx.mongodb')
 
-if [[ ! -L ../../impl/lib/libboost_system-mt.so ]]; then
-	ln -s libboost_system-mt.so.5 ../../impl/lib/libboost_system-mt.so
-fi
-
-if [[ ! -L ../../impl/lib/libboost_thread-mt.so ]]; then
-	ln -s libboost_thread-mt.so.5 ../../impl/lib/libboost_thread-mt.so
+if [[ ! -L $MONGODB_TOOLKIT/impl/include/boost ]]; then
+	ln -s $STREAMS_INSTALL/ext/include/streams_boost $MONGODB_TOOLKIT/impl/include/boost
 fi

@@ -1,5 +1,6 @@
 # project specific excludes
 com.ibm.streamsx.mongodb/doc
+com.ibm.streamsx.mongodb/impl/include/boost
 com.ibm.streamsx.mongodb/samples
 
 samples
@@ -15,6 +16,3 @@ index.*
 *.slo
 *.lo
 *.o
-
-# Soft links boost shared libraries
-libboost*.so
