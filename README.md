@@ -6,3 +6,6 @@ Web page with SPLDoc for operators and samples: [streamsx.mongodb SPLDoc](http:/
 Setup
 -----
 The toolkit needs write permissions for SPL developer.
+
+When creating a new build, the following flag should be placed in 'Other' -> 'C++ compiler options':  '-fno-strict-aliasing'.
+It prevents strict-aliasing warnings from mongodb header files.
