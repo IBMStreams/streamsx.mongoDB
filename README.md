@@ -7,5 +7,5 @@ Setup
 -----
 The toolkit needs write permissions for SPL developer.
 
-When creating a new build the following flag should be placed in 'Other' -> 'C++ compiler options': '-fno-strict-aliasing'.
+When creating a new build, the following flag should be placed in 'Other' -> 'C++ compiler options':  '-fno-strict-aliasing'.
 It prevents strict-aliasing warnings from mongodb header files.
