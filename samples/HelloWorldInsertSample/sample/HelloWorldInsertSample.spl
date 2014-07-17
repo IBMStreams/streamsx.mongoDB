@@ -1,0 +1,57 @@
+namespace sample;
+
+use com.ibm.streamsx.mongodb::*;
+
+composite HelloWorldInsertSample {
+	graph
+		stream<rstring greeting1> beaconOutStream = Beacon()  {
+            param iterations: 1;
+            output beaconOutStream :
+            	greeting1 = "Hello world";
+        }
+        
+        stream<rstring error1, rstring error2, rstring error3, rstring error4, rstring error5> MongoSink = Insert(beaconOutStream){
+        	param
+        		dbHost : "localhost";
+        	output MongoSink :
+        		/**
+				 * Store a tuple as is, the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c80f"), "greeting1" : "Hello world" }
+				 */
+        		error1 = InsertDocument("streams", "sample", beaconOutStream),
+
+        		/**
+				 * Store a tuple under the specified 'greetings2' key, the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c810"), "greeting2" : { "greeting1" : "Hello world" } }
+				 */
+        		error2 = InsertDocument("streams", "sample", "greeting2", beaconOutStream),
+
+        		/**
+				 * Store a tuple attribute under the specified 'greetings3' key (simple type always requires key), the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c811"), "greeting3" : "Hello world" }
+				 */
+        		error3 = InsertDocument("streams", "sample", "greeting3", greeting1),
+
+        		/**
+				 * Store a constant list under the specified 'greetings4' key (list/set type always requires key), the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c812"), "greeting4" : [  "Hello",  "world" ] }
+				 */
+        		error4 = InsertDocument("streams", "sample", "greeting4", ["Hello", "world"]),
+
+        		/**
+				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+				 */
+        		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"}); 
+        }
+        
+		/**
+		 * Will be called when at least one error occured
+		 */
+        () as ErrorSink = FileSink(MongoSink)   {
+            param
+                file : "/dev/stdout";
+                flush : 1u;
+                quoteStrings : false;
+        }
+}
