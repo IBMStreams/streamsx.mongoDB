@@ -22,8 +22,8 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
-	DBClientConnection conn_;
-
+	string buildConnUrl(const string& dbHost, uint32_t dbPort);
+	string buildDbCollection(const string& db, const string& collection);
 };
 
 <%SPL::CodeGen::headerEpilogue($model);%>

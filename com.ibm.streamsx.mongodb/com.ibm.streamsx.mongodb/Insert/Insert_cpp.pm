@@ -14,40 +14,41 @@ sub main::generate($$) {
    	use InsertCommon;
    
    	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
+   
    	my $dbPortParam = $model->getParameterByName('dbPort');
-   	
-   	my $autoReconnectParam = $model->getParameterByName('autoReconnect');
-   	my $autoReconnect = (defined $autoReconnectParam) ? $autoReconnectParam->getValueAt(0)->getCppExpression() : 'true';
+   	my $dbPort = (defined $dbPortParam) ? $dbPortParam->getValueAt(0)->getCppExpression() : 27017;
    	
    	my $timeoutParam = $model->getParameterByName('timeout');
-   	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0;
-   
-   	my $inputPort = $model->getInputPortAt(0);
-   	my $outputPort = $model->getOutputPortAt(0);
-   	my $inTuple = $inputPort->getCppTupleName();
+   	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0.0;
    print "\n";
    print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : conn_(';
-   print $autoReconnect;
-   print ', NULL, ';
-   print $timeout;
-   print ') {', "\n";
+   print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {', "\n";
+   print '	string connUrl = dbHost;', "\n";
+   print '	connUrl += ":"; ', "\n";
+   print '	connUrl += spl_cast<rstring,uint32_t>::cast(dbPort);', "\n";
+   print '	return connUrl;', "\n";
+   print '}', "\n";
+   print "\n";
+   print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildDbCollection(const string& db, const string& collection) {', "\n";
+   print '	string dbCollection(db);', "\n";
+   print '	dbCollection += ".";', "\n";
+   print '	dbCollection += collection;', "\n";
+   print '	return dbCollection;', "\n";
+   print '}', "\n";
+   print "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() {', "\n";
    print '	try {', "\n";
-   print '		string connUrl = ';
+   print '		ScopedDbConnection conn(buildConnUrl(';
    print $dbHost;
-   print ';', "\n";
-   print '		';
-   if (defined $dbPortParam) {
-   		  my $dbPort = $dbPortParam->getValueAt(0)->getCppExpression();
-   print "\n";
-   print '		  connUrl += ":"; ', "\n";
-   print '		  connUrl += spl_cast<rstring,uint32_t>::cast(';
+   print ', ';
    print $dbPort;
+   print '), (double)';
+   print $timeout;
    print ');', "\n";
-   print '		';
-   }
-   print ' ', "\n";
-   print '		conn_.connect(connUrl);', "\n";
+   print '		if(!conn.ok()) {', "\n";
+   print '			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");', "\n";
+   print '		}', "\n";
+   print '		conn.done();', "\n";
    print '	}', "\n";
    print '	catch( const DBException &e ) {', "\n";
    print '		THROW(SPL::SPLRuntimeOperator, e.what());', "\n";
@@ -60,14 +61,24 @@ sub main::generate($$) {
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::prepareToShutdown() {}', "\n";
    print "\n";
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {', "\n";
-   print '	IPort0Type const & ';
-   print $inTuple;
-   print ' = static_cast<IPort0Type const&>(tuple);', "\n";
+   print '	';
+   for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
+   print "\n";
+   print '	  IPort';
+   print $i;
+   print 'Type const & ';
+   print $model->getInputPortAt($i)->getCppTupleName();
+   print ' = static_cast<IPort';
+   print $i;
+   print 'Type const&>(tuple);', "\n";
+   print '	';
+   }
+   print "\n";
    print '	streams_boost::shared_ptr<OPort0Type> otuplePtr;', "\n";
    print '	bool errorFound = false;', "\n";
    print "\n";
    print '	';
-    foreach my $attribute (@{$outputPort->getAttributes()}) {
+    foreach my $attribute (@{$model->getOutputPortAt(0)->getAttributes()}) {
    	  my $name = $attribute->getName();
    	  if ($attribute->hasAssignmentWithOutputFunction()) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
@@ -83,29 +94,25 @@ sub main::generate($$) {
    print '		  ';
    }
    		  else {
-   			
-   print "\n";
-   print '		{', "\n";
-   print '			string dbCollection(';
-   print $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
-   print ');', "\n";
-   print '			dbCollection += ".";', "\n";
-   print '			dbCollection += ';
-   print $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
-   print ';', "\n";
-   print '			';
-   			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
+   			my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
+   			my $shift = $numberOfParams > 4 ? 2 : 0;
+   			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift);
    			my $key = 'defaultKey';
-   			my $keyAssigned = @{$attribute->getAssignmentOutputFunctionParameterValues} > 3;
+   			my $keyAssigned = $numberOfParams == 4 || $numberOfParams == 6;
    			if ($keyAssigned) {
-   				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2)->getCppExpression();
-   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3);
+   				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift)->getCppExpression();
+   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3+$shift);
    			}
    			my $exprLocation = $expr->getSourceLocation();
    			my $cppExpr = $expr->getCppExpression();
    			my $splType = $expr->getSPLType();
    			
-   			if ($keyAssigned) {
+   print "\n";
+   print '		{', "\n";
+   print '			', "\n";
+   print '			', "\n";
+   print '			';
+   if ($keyAssigned) {
    				if (SPL::CodeGen::Type::isPrimitive($splType)) {
    					my $value = InsertCommon::handlePrimitive($exprLocation, $cppExpr, $splType);
    print "\n";
@@ -118,7 +125,7 @@ sub main::generate($$) {
    print '				';
    }
    				else {
-   					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 1);
+   					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 1);
    print "\n";
    print '					BSONObjBuilder b0;', "\n";
    print '					b0.';
@@ -135,15 +142,46 @@ sub main::generate($$) {
    				if (InsertCommon::keyLess($splType)) {
    					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $splType, $expr->getSPLExpression(), $exprLocation) unless ($keyAssigned);
    				}
-   				InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 0);
+   				InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 0);
    			}
    			
+   			my $currentDbHost = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()  : $dbHost;
+   			my $currentDbPort = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()  : $dbPort;
+   			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0+$shift)->getCppExpression();
+   			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1+$shift)->getCppExpression();
+   			
    print "\n";
-   print '			conn_.insert(dbCollection, b0.obj());', "\n";
-   print '			const rstring errorMsg = conn_.DBClientWithCommands::getLastError();', "\n";
+   print '			', "\n";
+   print '			rstring errorMsg = "";', "\n";
+   print '			try {', "\n";
+   print '				ScopedDbConnection conn(buildConnUrl(';
+   print $currentDbHost;
+   print ', ';
+   print $currentDbPort;
+   print '), (double)';
+   print $timeout;
+   print ');', "\n";
+   print '				', "\n";
+   print '				if(conn.ok()) {', "\n";
+   print '					conn->insert(buildDbCollection(';
+   print $db;
+   print ', ';
+   print $collection;
+   print '), b0.obj());', "\n";
+   print '					errorMsg = conn->DBClientWithCommands::getLastError();', "\n";
+   print '					conn.done();', "\n";
+   print '				}', "\n";
+   print '				else {', "\n";
+   print '					errorMsg = "MongoDB create connection failed";', "\n";
+   print '				}', "\n";
+   print '			}', "\n";
+   print '			catch( const DBException &e ) {', "\n";
+   print '				errorMsg = e.what();', "\n";
+   print '			}', "\n";
+   print '			', "\n";
    print '			if (errorMsg != "") {', "\n";
    print '				errorFound = true;', "\n";
-   print '				SPLAPPLOG(L_ERROR, error, "MongoDBInsert");', "\n";
+   print '				SPLAPPLOG(L_ERROR, error, "MongoDB Insert");', "\n";
    print '				if(!otuplePtr){', "\n";
    print '					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());', "\n";
    print '				}', "\n";

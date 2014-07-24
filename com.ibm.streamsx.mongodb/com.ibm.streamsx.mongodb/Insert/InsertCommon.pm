@@ -4,19 +4,19 @@ use strict;
 use warnings;
 
 sub buildBSONObject(@) {
-	my ($model, $exprLocation, $cppExpr, $splType, $seq) = @_;
+	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
 
 	if(SPL::CodeGen::Type::isList($splType) || SPL::CodeGen::Type::isBList($splType) ||
 	   SPL::CodeGen::Type::isSet($splType) || SPL::CodeGen::Type::isBSet($splType)) {
-		buildBSONObjectFromListOrSet($model, $exprLocation, $cppExpr, $splType, $seq);
+		buildBSONObjectFromListOrSet($exprLocation, $cppExpr, $splType, $seq);
 		return ('appendArray','arr');
 	}
 	elsif(SPL::CodeGen::Type::isMap($splType) || SPL::CodeGen::Type::isBMap($splType)) {
-		buildBSONObjectFromMap($model, $exprLocation, $cppExpr, $splType, $seq);
+		buildBSONObjectFromMap($exprLocation, $cppExpr, $splType, $seq);
 		return ('append','obj');
 	}
 	elsif(SPL::CodeGen::Type::isTuple($splType)) {
-		buildBSONObjectFromTuple($model, $exprLocation, $cppExpr, $splType, $seq);
+		buildBSONObjectFromTuple($exprLocation, $cppExpr, $splType, $seq);
 		return ('append','obj');
 	}
 	else {
@@ -25,7 +25,7 @@ sub buildBSONObject(@) {
 }
 
 sub buildBSONObjectFromListOrSet(@) {
-	my ($model, $exprLocation, $cppExpr, $splType, $seq) = @_;
+	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
 	
 	print "\n"; print "\t" x $seq; print "BSONArrayBuilder b$seq; \n";
 	my $valueType = SPL::CodeGen::Type::getElementType($splType);
@@ -37,14 +37,14 @@ sub buildBSONObjectFromListOrSet(@) {
 		print "\t" x $seq; print "\t b$seq.append($value); \n";
 	}
 	else {
-		my ($appendFunction,$objFunction) = buildBSONObject($model, $exprLocation, "*it$seq", $valueType, $seq+1);
+		my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "*it$seq", $valueType, $seq+1);
 		print "\t" x $seq; print "\t b$seq.append(b".($seq+1).".$objFunction()); \n";
 	}
 	print "\t" x $seq; print "} \n";
 }
 
 sub buildBSONObjectFromMap(@) {
-	my ($model, $exprLocation, $cppExpr, $splType, $seq) = @_;
+	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
 	
 	if(!SPL::CodeGen::Type::isString(SPL::CodeGen::Type::getKeyType($splType))) {
 		SPL::CodeGen::errorln("The map key type %s must be of string type.", SPL::CodeGen::Type::getKeyType($splType), $exprLocation);
@@ -60,14 +60,14 @@ sub buildBSONObjectFromMap(@) {
 		print "\t" x $seq; print "\t b$seq.append(it$seq->first, $value); \n";
 	}
 	else {
-		my ($appendFunction,$objFunction) = buildBSONObject($model, $exprLocation, "it$seq->second", $valueType, $seq+1);
+		my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "it$seq->second", $valueType, $seq+1);
 		print "\t" x $seq; print "b$seq.$appendFunction(it$seq->first, b".($seq+1).".$objFunction()); \n";
 	}
 	print "\t" x $seq; print "} \n";
 }
 
 sub buildBSONObjectFromTuple(@) {
-	my ($model, $exprLocation, $cppExpr, $splType, $seq) = @_;
+	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
 
 	my @attrNames = SPL::CodeGen::Type::getAttributeNames($splType);
 	my @attrTypes = SPL::CodeGen::Type::getAttributeTypes($splType);
@@ -82,7 +82,7 @@ sub buildBSONObjectFromTuple(@) {
 			print "\t" x $seq; print "\t b$seq.append(\"$attrNames[$i]\", $value); \n";
 		}
 		else {
-			my ($appendFunction,$objFunction) = buildBSONObject($model, $exprLocation, "tupleData$seq.get_$attrNames[$i]()", $attrTypes[$i], $seq+1);
+			my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "tupleData$seq.get_$attrNames[$i]()", $attrTypes[$i], $seq+1);
 			print "\t" x $seq; print "b$seq.$appendFunction(\"$attrNames[$i]\", b".($seq+1).".$objFunction()); \n";
 		}
 		print "\t" x $seq; print "} \n"; 

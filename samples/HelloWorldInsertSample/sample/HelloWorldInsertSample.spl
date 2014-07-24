@@ -4,13 +4,19 @@ use com.ibm.streamsx.mongodb::*;
 
 composite HelloWorldInsertSample {
 	graph
-		stream<rstring greeting1> beaconOutStream = Beacon()  {
+		stream<rstring greeting1> B1Stream = Beacon()  {
             param iterations: 1;
-            output beaconOutStream :
+            output B1Stream :
             	greeting1 = "Hello world";
         }
         
-        stream<rstring error1, rstring error2, rstring error3, rstring error4, rstring error5> MongoSink = Insert(beaconOutStream){
+		stream<rstring greeting2> B2Stream = Beacon()  {
+            param iterations: 1;
+            output B2Stream :
+            	greeting2 = "Hello again";
+        }
+        
+        stream<rstring error1, rstring error2, rstring error3, rstring error4, rstring error5, rstring error6> MongoSink = Insert(B1Stream; B2Stream){
         	param
         		dbHost : "localhost";
         	output MongoSink :
@@ -18,13 +24,13 @@ composite HelloWorldInsertSample {
 				 * Store a tuple as is, the resulting document is:
 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c80f"), "greeting1" : "Hello world" }
 				 */
-        		error1 = InsertDocument("streams", "sample", beaconOutStream),
+        		error1 = InsertDocument("streams", "sample", B1Stream),
 
         		/**
 				 * Store a tuple under the specified 'greetings2' key, the resulting document is:
-				 * { "_id" : ObjectId("53c795f7e66ebea0c454c810"), "greeting2" : { "greeting1" : "Hello world" } }
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c810"), "greeting2" : { "greeting2" : "Hello world" } }
 				 */
-        		error2 = InsertDocument("streams", "sample", "greeting2", beaconOutStream),
+        		error2 = InsertDocument("streams", "sample", "greeting2", B2Stream),
 
         		/**
 				 * Store a tuple attribute under the specified 'greetings3' key (simple type always requires key), the resulting document is:
@@ -42,7 +48,14 @@ composite HelloWorldInsertSample {
 				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
 				 */
-        		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"}); 
+        		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"}),
+
+        		/**
+				 * Specify different MongoDB server host.
+				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+				 */
+        		error6 = InsertDocument("localhost", 27017u, "streams", "sample", {"greeting6_1" : "Hello", "greeting6_2" : "world"}); 
         }
         
 		/**

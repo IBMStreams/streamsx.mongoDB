@@ -18,6 +18,14 @@
             <description></description>
             <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
+          <function pseudoFunction="true">
+            <description></description>
+            <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description></description>
+            <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
         </customOutputFunction>
       </customOutputFunctions>
       <libraryDependencies>
@@ -42,7 +50,7 @@
         <description></description>
         <optional>false</optional>
         <rewriteAllowed>true</rewriteAllowed>
-        <expressionMode>Expression</expressionMode>
+        <expressionMode>AttributeFree</expressionMode>
         <type>rstring</type>
         <cardinality>1</cardinality>
       </parameter>
@@ -51,17 +59,8 @@
         <description></description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
-        <expressionMode>Expression</expressionMode>
+        <expressionMode>AttributeFree</expressionMode>
         <type>uint32</type>
-        <cardinality>1</cardinality>
-      </parameter>
-      <parameter>
-        <name>autoReconnect</name>
-        <description></description>
-        <optional>true</optional>
-        <rewriteAllowed>true</rewriteAllowed>
-        <expressionMode>Expression</expressionMode>
-        <type>boolean</type>
         <cardinality>1</cardinality>
       </parameter>
       <parameter>
@@ -69,7 +68,7 @@
         <description></description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
-        <expressionMode>Expression</expressionMode>
+        <expressionMode>AttributeFree</expressionMode>
         <type>float64</type>
         <cardinality>1</cardinality>
       </parameter>
@@ -79,8 +78,8 @@
         <description></description>
         <windowingDescription></windowingDescription>
         <tupleMutationAllowed>false</tupleMutationAllowed>
-        <windowingMode>OptionallyWindowed</windowingMode>
-        <windowPunctuationInputMode>WindowBound</windowPunctuationInputMode>
+        <windowingMode>NonWindowed</windowingMode>
+        <windowPunctuationInputMode>Oblivious</windowPunctuationInputMode>
       </inputPortOpenSet>
     </inputPorts>
     <outputPorts>

@@ -5,28 +5,35 @@
 	use InsertCommon;
 
 	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
+
 	my $dbPortParam = $model->getParameterByName('dbPort');
-	
-	my $autoReconnectParam = $model->getParameterByName('autoReconnect');
-	my $autoReconnect = (defined $autoReconnectParam) ? $autoReconnectParam->getValueAt(0)->getCppExpression() : 'true';
+	my $dbPort = (defined $dbPortParam) ? $dbPortParam->getValueAt(0)->getCppExpression() : 27017;
 	
 	my $timeoutParam = $model->getParameterByName('timeout');
-	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0;
-
-	my $inputPort = $model->getInputPortAt(0);
-	my $outputPort = $model->getOutputPortAt(0);
-	my $inTuple = $inputPort->getCppTupleName();
+	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0.0;
 %>
 
-MY_OPERATOR::MY_OPERATOR() : conn_(<%=$autoReconnect%>, NULL, <%=$timeout%>) {
+string MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {
+	string connUrl = dbHost;
+	connUrl += ":"; 
+	connUrl += spl_cast<rstring,uint32_t>::cast(dbPort);
+	return connUrl;
+}
+
+string MY_OPERATOR::buildDbCollection(const string& db, const string& collection) {
+	string dbCollection(db);
+	dbCollection += ".";
+	dbCollection += collection;
+	return dbCollection;
+}
+
+MY_OPERATOR::MY_OPERATOR() {
 	try {
-		string connUrl = <%=$dbHost%>;
-		<%if (defined $dbPortParam) {
-		  my $dbPort = $dbPortParam->getValueAt(0)->getCppExpression();%>
-		  connUrl += ":"; 
-		  connUrl += spl_cast<rstring,uint32_t>::cast(<%=$dbPort%>);
-		<%}%> 
-		conn_.connect(connUrl);
+		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
+		if(!conn.ok()) {
+			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");
+		}
+		conn.done();
 	}
 	catch( const DBException &e ) {
 		THROW(SPL::SPLRuntimeOperator, e.what());
@@ -39,11 +46,13 @@ void MY_OPERATOR::allPortsReady() {}
 void MY_OPERATOR::prepareToShutdown() {}
 
 void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
-	IPort0Type const & <%=$inTuple%> = static_cast<IPort0Type const&>(tuple);
+	<%for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {%>
+	  IPort<%=$i%>Type const & <%=$model->getInputPortAt($i)->getCppTupleName()%> = static_cast<IPort<%=$i%>Type const&>(tuple);
+	<%}%>
 	streams_boost::shared_ptr<OPort0Type> otuplePtr;
 	bool errorFound = false;
 
-	<% foreach my $attribute (@{$outputPort->getAttributes()}) {
+	<% foreach my $attribute (@{$model->getOutputPortAt(0)->getAttributes()}) {
 	  my $name = $attribute->getName();
 	  if ($attribute->hasAssignmentWithOutputFunction()) {
 		  my $operation = $attribute->getAssignmentOutputFunctionName();
@@ -53,31 +62,30 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 			otuplePtr->set_<%=$name%>(<%=$init%>);
 		  <%}
 		  else {
-			%>
-		{
-			string dbCollection(<%=$attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()%>);
-			dbCollection += ".";
-			dbCollection += <%=$attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()%>;
-			<%
-			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
+			my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
+			my $shift = $numberOfParams > 4 ? 2 : 0;
+			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift);
 			my $key = 'defaultKey';
-			my $keyAssigned = @{$attribute->getAssignmentOutputFunctionParameterValues} > 3;
+			my $keyAssigned = $numberOfParams == 4 || $numberOfParams == 6;
 			if ($keyAssigned) {
-				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2)->getCppExpression();
-				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3);
+				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift)->getCppExpression();
+				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3+$shift);
 			}
 			my $exprLocation = $expr->getSourceLocation();
 			my $cppExpr = $expr->getCppExpression();
 			my $splType = $expr->getSPLType();
+			%>
+		{
 			
-			if ($keyAssigned) {
+			
+			<%if ($keyAssigned) {
 				if (SPL::CodeGen::Type::isPrimitive($splType)) {
 					my $value = InsertCommon::handlePrimitive($exprLocation, $cppExpr, $splType);%>
 					BSONObjBuilder b0;
 					b0.append(<%=$key%>, <%=$value%>); 
 				<%}
 				else {
-					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 1);%>
+					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 1);%>
 					BSONObjBuilder b0;
 					b0.<%=$appendFunction%>(<%=$key%>, b1.<%=$objFunction%>());
 				<%}
@@ -86,14 +94,35 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 				if (InsertCommon::keyLess($splType)) {
 					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $splType, $expr->getSPLExpression(), $exprLocation) unless ($keyAssigned);
 				}
-				InsertCommon::buildBSONObject($model, $exprLocation, $cppExpr, $splType, 0);
+				InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 0);
 			}
+			
+			my $currentDbHost = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()  : $dbHost;
+			my $currentDbPort = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()  : $dbPort;
+			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0+$shift)->getCppExpression();
+			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1+$shift)->getCppExpression();
 			%>
-			conn_.insert(dbCollection, b0.obj());
-			const rstring errorMsg = conn_.DBClientWithCommands::getLastError();
+			
+			rstring errorMsg = "";
+			try {
+				ScopedDbConnection conn(buildConnUrl(<%=$currentDbHost%>, <%=$currentDbPort%>), (double)<%=$timeout%>);
+				
+				if(conn.ok()) {
+					conn->insert(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
+					errorMsg = conn->DBClientWithCommands::getLastError();
+					conn.done();
+				}
+				else {
+					errorMsg = "MongoDB create connection failed";
+				}
+			}
+			catch( const DBException &e ) {
+				errorMsg = e.what();
+			}
+			
 			if (errorMsg != "") {
 				errorFound = true;
-				SPLAPPLOG(L_ERROR, error, "MongoDBInsert");
+				SPLAPPLOG(L_ERROR, error, "MongoDB Insert");
 				if(!otuplePtr){
 					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());
 				}

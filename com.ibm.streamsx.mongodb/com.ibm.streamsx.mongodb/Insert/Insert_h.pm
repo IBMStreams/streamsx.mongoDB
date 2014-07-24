@@ -32,8 +32,8 @@ sub main::generate($$) {
    print '	void process(Tuple const & tuple, uint32_t port);', "\n";
    print "\n";
    print 'private:', "\n";
-   print '	DBClientConnection conn_;', "\n";
-   print "\n";
+   print '	string buildConnUrl(const string& dbHost, uint32_t dbPort);', "\n";
+   print '	string buildDbCollection(const string& db, const string& collection);', "\n";
    print '};', "\n";
    print "\n";
    SPL::CodeGen::headerEpilogue($model);
