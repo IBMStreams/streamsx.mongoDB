@@ -1,0 +1,38 @@
+#include <streams_boost/foreach.hpp>
+#include <streams_boost/thread/tss.hpp>
+#include <streams_boost/typeof/typeof.hpp>
+#define foreach STREAMS_BOOST_FOREACH
+
+namespace boost = streams_boost;
+
+#include "mongo/client/dbclient.h"
+
+using namespace mongo;
+
+<%SPL::CodeGen::headerPrologue($model);%>
+
+class MY_OPERATOR: public MY_BASE_OPERATOR {
+
+public:
+	MY_OPERATOR();
+	virtual ~MY_OPERATOR();
+
+	void allPortsReady();
+	void prepareToShutdown();
+
+	void process(Tuple const & tuple, uint32_t port);
+
+private:
+//	DBClientConnection conn_;
+	
+	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;
+	OPort0Type * getOutputTuple();
+	
+	BSONObj findQueryBO_;
+	BSONObj buildFindQueryBO();
+
+	string buildConnUrl(const string& dbHost, uint32_t dbPort);
+	string buildDbCollection(const string& db, const string& collection);
+};
+
+<%SPL::CodeGen::headerEpilogue($model);%>
