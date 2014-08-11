@@ -12,11 +12,23 @@
           </function>
           <function pseudoFunction="true">
             <description></description>
+            <prototype>&lt;string T> T QueryDocumentFieldAsJson()</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description></description>
             <prototype>&lt;any T> T QueryDocumentField()</prototype>
           </function>
           <function>
             <description></description>
-            <prototype>&lt;any T, composite C> T QueryDocumentField(C findFields)</prototype>
+            <prototype>&lt;any T> T QueryDocumentField(rstring findPath)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description></description>
+            <prototype>&lt;any T> T QueryDocumentMultipleFields()</prototype>
+          </function>
+          <function>
+            <description></description>
+            <prototype>&lt;any T> T QueryDocumentMultipleFields(rstring findPath)</prototype>
           </function>
         </customOutputFunction>
       </customOutputFunctions>
@@ -89,6 +101,15 @@
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
         <type></type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>nToReturn</name>
+        <description></description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>Expression</expressionMode>
+        <type>uint32</type>
         <cardinality>1</cardinality>
       </parameter>
       <parameter>

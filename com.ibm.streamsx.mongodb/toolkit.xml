@@ -90,13 +90,13 @@
             <prototype>&lt;any T&gt; T QueryDocumentField(rstring findPath)</prototype>
             <parameter name="findPath" type="rstring"/>
           </function>
-          <function name="QueryDocumentFields" returnType="T">
+          <function name="QueryDocumentMultipleFields" returnType="T">
             <description/>
-            <prototype>&lt;any T&gt; T QueryDocumentFields()</prototype>
+            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields()</prototype>
           </function>
-          <function name="QueryDocumentFields" returnType="T">
+          <function name="QueryDocumentMultipleFields" returnType="T">
             <description/>
-            <prototype>&lt;any T&gt; T QueryDocumentFields(rstring findPath)</prototype>
+            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields(rstring findPath)</prototype>
             <parameter name="findPath" type="rstring"/>
           </function>
         </outputFunctions>

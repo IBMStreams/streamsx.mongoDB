@@ -3,33 +3,55 @@ package QueryCommon;
 use strict;
 use warnings;
 
-use File::Basename qw(dirname);
-
-sub buildBSONObject(@) {
-	my ($model, $exprLocation, $cppExpr, $splType, $seq) = @_;
-	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
-	require BSONCommon;
-	BSONCommon::buildBSONObject($exprLocation, $cppExpr, $splType, $seq);
-}
-
 sub initBSONObject(@) {
-	my ($attrName, $cppType) = @_;
-	
-print
-<<"[----- c++ code -----]";
-	{
+	my ($attrName, $attrNameNotInBO, $cppType, $findPath) = @_;
+
+print qq(
+	for(;;)	{
 		$cppType & attr0 = otuple.get_$attrName();
-		const BSONObj & bo0 = queryResultBO;
 		bool valueApplied = false;
-[----- c++ code -----]
+);
+
+	if ($findPath) {
+
+print qq(
+	const BSONElement & be_$attrName = queryResultBO.getFieldDotted($findPath);
+	if (be_$attrName.eoo()) break;
+	const BSONObj & queryResultBO = be_$attrName.type() == Object ? be_$attrName.embeddedObject() : BSONObj();
+);
+	}
+	
+	if ($attrNameNotInBO) {
+		if ($findPath) {
+
+print qq(
+		const BSONObj & bo0 = be_$attrName.wrap("$attrName");
+);
+		}
+		else {
+
+print qq(
+		BSONObjBuilder b0;
+		b0.append("$attrName", queryResultBO);
+		const BSONObj & bo0 = b0.obj();
+);
+	}
+		}
+	else {
+	
+print qq(
+		const BSONObj & bo0 = queryResultBO;
+);
+	}
 }
 
 
 sub endBSONObject {
-print
-<<"[----- c++ code -----]";
+
+print qq(
+	break;
 	}
-[----- c++ code -----]
+);
 }
 
 
@@ -37,13 +59,13 @@ sub handleBSONObject(@) {
 	my ($exprLocation, $attrName, $splType, $seq) = @_;
 
 	if ($attrName) {
-print
-<<"[----- c++ code -----]";
-		cout << bo$seq.jsonString() << endl;
-		if(bo$seq.hasElement(\"$attrName\")) {
-			cout << "Field found" << endl;
-			const BSONElement be$seq = bo$seq.getField(\"$attrName\");
-[----- c++ code -----]
+	
+print qq(
+		cout << "BO: " << bo$seq.jsonString() << endl;
+		if(bo$seq.hasElement("$attrName")) {
+			const BSONElement & be$seq = bo$seq.getField("$attrName");
+);
+
 	}
 	
 	if(SPL::CodeGen::Type::isPrimitive($splType)) {
@@ -68,10 +90,10 @@ print
 	}
 	
 	if ($attrName) {
-print
-<<"[----- c++ code -----]";
+
+print qq(
 	}
-[----- c++ code -----]
+);
 	}
 }
 
@@ -81,12 +103,8 @@ sub handleBSONArray(@) {
 	my $valueType = SPL::CodeGen::Type::getElementType($splType);
 	my $nextSeq = $seq+1;
 	
-print
-<<"[----- c++ code -----]";
+print qq(
 	if(be$seq.type() == Array) {
-		cout << "Field is array" << endl;
-		cout << be$seq.toString(false) << endl;
-
 		typedef STREAMS_BOOST_TYPEOF((attr$seq)) cppExpr$seq; 
 		// const std::vector<BSONElement> & listData$seq =  be$seq.Array();
 		
@@ -94,25 +112,19 @@ print
 			cppExpr$seq\::value_type attr$nextSeq;
 			const BSONElement & be$nextSeq = it$seq.next();
 			bool valueApplied = false;
-		// foreach (const BSONElement & be$nextSeq, listData$seq) {
-		//	bool valueApplied = true;
-		//	cppExpr$seq\::value_type attr$nextSeq;
-[----- c++ code -----]
+);
 
 			handleBSONObject($exprLocation, '', $valueType, $nextSeq);
 
-print
-<<"[----- c++ code -----]";
+print qq(
 			if(valueApplied) attr$seq.add(attr$nextSeq);
-			// attr$seq.add(attr$nextSeq);
-			cout << "Field: " << attr$nextSeq << endl;
-			cout << "List: " << attr$seq << endl;
 		}
 		if(attr$seq.getSize() > 0) {
 			valueApplied = true;
 		}
 	}
-[----- c++ code -----]
+);
+
 }
 
 
@@ -126,36 +138,27 @@ sub handleBSONObjectAsMap(@) {
 		SPL::CodeGen::errorln("The map key type %s must be of string type.", $keyType, $exprLocation);
 	}
 
-print
-<<"[----- c++ code -----]";
+print qq(
 	if(be$seq.type() == Object) {
-		cout << "Field is object" << endl;
-		cout << be$seq.toString(false) << endl;
-
 		typedef STREAMS_BOOST_TYPEOF((attr$seq)) cppExpr$seq; 
 		
-		// foreach (const BSONElement & be$nextSeq, listData$seq) {
 		for (BSONObjIterator it$seq(be$seq.embeddedObject()); it$seq.more();) {
-			bool valueApplied = true;
 			cppExpr$seq\::mapped_type attr$nextSeq;
 			const BSONElement & be$nextSeq = it$seq.next();
 			bool valueApplied = false;
-[----- c++ code -----]
+);
 
 			handleBSONObject($exprLocation, '', $valueType, $nextSeq);
 
-print
-<<"[----- c++ code -----]";
+print qq(
 			if(valueApplied) attr$seq.add(be$nextSeq.fieldName(), attr$nextSeq);
-			// attr$seq.add(be$nextSeq.fieldName(), attr$nextSeq);
-			cout << "Field: " << attr$nextSeq << endl;
-			cout << "Map: " << attr$seq << endl;
 		}
 		if(attr$seq.getSize() > 0) {
 			valueApplied = true;
 		}
 	}
-[----- c++ code -----]
+);
+
 }
 
 
@@ -165,56 +168,54 @@ sub handleBSONObjectAsTuple(@) {
 	my @attrTypes = SPL::CodeGen::Type::getAttributeTypes($splType);
 	my $nextSeq = $seq+1;
 	
-print
-<<"[----- c++ code -----]";
+print qq(
 	if(be$seq.type() == Object) {
-		cout << "Field is object" << endl;
-		cout << be$seq.toString(false) << endl;
-	
-[----- c++ code -----]
+);
 
 		for (my $i = 0; $i < @attrNames; $i++) {
 
-print
-<<"[----- c++ code -----]";
+print qq(
 		{
 			typedef STREAMS_BOOST_TYPEOF((attr$seq.get_$attrNames[$i]())) cppExpr$seq; 
 			cppExpr$seq & attr$nextSeq = attr$seq.get_$attrNames[$i]();
 			const BSONObj & bo$nextSeq = be$seq.embeddedObject();
-[----- c++ code -----]
-
+);
 			handleBSONObject($exprLocation, $attrNames[$i], $attrTypes[$i], $nextSeq);
 			
-print
-<<"[----- c++ code -----]";
-			cout << "Field $attrNames[$i]: " << attr$nextSeq << endl;
-			cout << "Tuple: " << attr$seq << endl;
+print qq(
 		}
-[----- c++ code -----]
-	
+);
 		}
 	
-print
-<<"[----- c++ code -----]";
+print qq(
 		valueApplied = true;
 	}
-[----- c++ code -----]
-	
+);
 }
 
 
+sub handleBSONObjectAsJson(@) {
+	my ($attrName, $valueType) = @_;
+
+	my $value = 'queryResultBO.jsonString()';
+	if(SPL::CodeGen::Type::isUString($valueType)) {
+		$value = "spl_cast<ustring,string>::cast($value)";
+	}
+
+print qq(
+	otuple.set_$attrName($value);
+);
+}
+
+	
 sub handlePrimitive(@) {
 	my ($exprLocation, $valueType, $seq) = @_;
 	
-print
-<<"[----- c++ code -----]";
-		valueApplied = false;
+print qq(
+		// valueApplied = false;
 		if(be$seq.isSimpleType()) {
 			typedef STREAMS_BOOST_TYPEOF((attr$seq)) cppExpr$seq;
-			cout << "Field is simple type" << endl;
-			cout << be$seq.toString(false) << endl;
-[----- c++ code -----]
-			
+);
 			if(SPL::CodeGen::Type::isComplex($valueType)) {
 				SPL::CodeGen::errorln("The complex type is not supported.", $exprLocation);
 			}
@@ -249,42 +250,42 @@ print
 				handleXml($seq);
 			}
 
-print
-<<"[----- c++ code -----]";
+print qq(
 		}
-[----- c++ code -----]
+);
 }
 
 
-sub handleBlob {
-print
-<<"[----- c++ code -----]";
-	if(be$_.type() == BinData) {
+sub handleBlob($) {
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.type() == BinData) {
 		int length;
-		const char* blobData = be$_.binDataClean(length);
-		attr$_ = SPL::blob(blobData, length);
+		const char* blobData = be$seq.binDataClean(length);
+		attr$seq = SPL::blob(blobData, length);
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleBoolean {
-print
-<<"[----- c++ code -----]";
-	if(be$_.isBoolean()) {
-		attr$_ = be$_.boolean();
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.isBoolean()) {
+		attr$seq = be$seq.boolean();
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleEnum {
 my ($seq, $valueType) = @_;
 
-print
-<<"[----- c++ code -----]";
+print qq(
 	if(be$seq.type() == String) {
 		try {
 			attr$seq = spl_cast<$valueType,string>::cast( be$seq.str());
@@ -292,39 +293,39 @@ print
 	    }
 	    catch (...) {}
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleDecimal {
 my ($seq, $valueType) = @_;
 
-print <<"[----- c++ code -----]";
-	if(be$_.isNumber()) {
+print qq(
+	if(be$seq.isNumber()) {
 		double value = be$seq.number();
-		attr$_ = spl_cast<$valueType,double>::cast(value);
+		attr$seq = spl_cast<$valueType,double>::cast(value);
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleFloat {
-print
-<<"[----- c++ code -----]";
-	if(be$_.isNumber()) {
-		attr$_ = be$_.number();
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.isNumber()) {
+		attr$seq = be$seq.number();
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleInt {
 my ($seq, $valueType) = @_;
 
-print
-<<"[----- c++ code -----]";
+print qq(
 	if(be$seq.type() == NumberDouble) {
 		attr$seq = spl_cast<$valueType,double>::cast( be$seq.numberDouble());
 		valueApplied = true;
@@ -337,54 +338,58 @@ print
 		attr$seq = be$seq.numberLong();
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleRString {
-print
-<<"[----- c++ code -----]";
-	if(be$_.type() == String) {
-		attr$_ = be$_.str();
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.type() == String) {
+		attr$seq = be$seq.str();
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 sub handleUString {
-print
-<<"[----- c++ code -----]";
-	if(be$_.type() == String) {
-		attr$_ = spl_cast<ustring,string>::cast( be$_.str());
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.type() == String) {
+		attr$seq = spl_cast<ustring,string>::cast( be$seq.str());
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleTimestamp {
-print
-<<"[----- c++ code -----]";
-	if(be$_.type() == Date) {
-		attr$_ = createTimestamp( be$_.date().asInt64(), 0);
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.type() == Date) {
+		attr$seq = createTimestamp( be$seq.date().asInt64(), 0);
 		valueApplied = true;
 	}
-	else if(be$_.type() == Timestamp) {
-		attr$_ = createTimestamp( be$_.timestampTime().asInt64(), 0);
+	else if(be$seq.type() == Timestamp) {
+		attr$seq = createTimestamp( be$seq.timestampTime().asInt64(), 0);
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 
 sub handleXml {
-print
-<<"[----- c++ code -----]";
-	if(be$_.type() == String) {
-		attr$_ = spl_cast<xml,string>::cast( be$_.str());
+my ($seq) = @_;
+
+print qq(
+	if(be$seq.type() == String) {
+		attr$seq = spl_cast<xml,string>::cast( be$seq.str());
 		valueApplied = true;
 	}
-[----- c++ code -----]
+);
 }
 
 

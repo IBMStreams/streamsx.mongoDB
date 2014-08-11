@@ -1,31 +1,25 @@
 <%SPL::CodeGen::implementationPrologue($model);%>
 
 <%
+	use File::Basename qw(dirname);
 	use QueryCommon;
+
+	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
+	require BSONCommon;
 
 	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
 	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
 
 	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
+	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
 
-	my $dbPortParam = $model->getParameterByName('dbPort');
-	my $dbPort = (defined $dbPortParam) ? $dbPortParam->getValueAt(0)->getCppExpression() : 27017;
+	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
+	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
+	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a map or a tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
+		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()));
 
-	my $findFieldsParam = $model->getParameterByName('findFields');
-	my $findFields = (defined $findFieldsParam) ? '&'.$findFieldsParam->getValueAt(0)->getCppExpression() : 'NULL';
-
-	my $findQueryParam = $model->getParameterByName('findQuery');
-	my $findQueryExpr = $findQueryParam->getValueAt(0);
-	my $findQuery = (defined $findQueryParam) ? $findQueryExpr->getCppExpression() : 'BSONObj()';
-	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not map or tuple.",
-			$findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
-			if (defined $findQueryParam && QueryCommon::keyLess($findQueryExpr->getSPLType()));
-
-	my $timeoutParam = $model->getParameterByName('timeout');
-	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0.0;
-
-	my $ignoreDocumentIdParam = $model->getParameterByName('ignoreDocumentId');
-	my $ignoreDocumentId = (defined $ignoreDocumentIdParam) ? $ignoreDocumentIdParam->getValueAt(0)->getCppExpression() : 'true';
+	my $nToReturn = ($_ = $model->getParameterByName('nToReturn')) ? $_->getValueAt(0)->getCppExpression() : 0;
+	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
 
 	my $inputPort = $model->getInputPortAt(0);
 	my $outputPort = $model->getOutputPortAt(0);
@@ -46,17 +40,27 @@ string MY_OPERATOR::buildDbCollection(const string& db, const string& collection
 	return dbCollection;
 }
 
-BSONObj MY_OPERATOR::buildFindQueryBO() {
-<%if (defined $findQueryParam) {
-	QueryCommon::buildBSONObject($model, $findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+BSONObj MY_OPERATOR::buildFindFieldsBO() {
+<%if (defined $findFieldsExpr && (not $findFieldsExpr->hasStreamAttributes())) {
+	BSONCommon::buildBSONObject($findFieldsExpr->getSourceLocation(), $findFieldsExpr->getCppExpression(), $findFieldsExpr->getSPLType(), 0);%>
 	return b0.obj();
 <%}
-  else {%>
+else {%>
 	return BSONObj();
 <%}%>
 }
 
-MY_OPERATOR::MY_OPERATOR() : findQueryBO_(buildFindQueryBO()) {
+BSONObj MY_OPERATOR::buildFindQueryBO() {
+<%if (defined $findQueryExpr && (not $findQueryExpr->hasStreamAttributes())) {
+	BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+	return b0.obj();
+<%}
+else {%>
+	return BSONObj();
+<%}%>
+}
+
+MY_OPERATOR::MY_OPERATOR() : findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {
 	try {
 		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
 		if(!conn.ok()) {
@@ -94,8 +98,21 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	  <%}
 	}%>
 
+	<%if (defined $findFieldsExpr && $findFieldsExpr->hasStreamAttributes()) {%>
+		const BSONObj & findFieldsBO = buildFindFieldsBO();
+	<%}
+	else {%>
+		const BSONObj & findFieldsBO = findFieldsBO_;
+	<%}%>
+
+	<%if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
+		const BSONObj & findQueryBO = buildFindQueryBO();
+	<%}
+	else {%>
+		const BSONObj & findQueryBO = findQueryBO_;
+	<%}%>
+	
 	streams_boost::scoped_ptr<ScopedDbConnection> conn;
-	BSONObj queryResultBO;
 	bool docFound = false;
 	
 	rstring errorMsg = "";
@@ -115,37 +132,44 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	}
 
 	if(conn->ok()) {
-		streams_boost::scoped_ptr<DBClientCursor> cursor((*conn)->query(buildDbCollection(<%=$db%>, <%=$collection%>), <%=$findQuery%>));
+		streams_boost::scoped_ptr<DBClientCursor> cursor((*conn)->query(buildDbCollection(<%=$db%>, <%=$collection%>),
+																		findQueryBO,
+																		<%=$nToReturn%>, NULL,
+																		&findFieldsBO,
+																		NULL, NULL));
 		docFound = cursor->more();
 		while (cursor->more()) {
-			queryResultBO = cursor->next();
+			const BSONObj & queryResultBO = cursor->next();
 			OPort0Type otuple(*otuplePtr);
+			size_t tupleHash = otuple.hashCode();
 
 <%# [----- perl code -----]
 		foreach my $attribute (@{$outputPort->getAttributes()}) {
 			my $attrName = $attribute->getName();
-			if ($attribute->hasAssignmentWithOutputFunction() && ($attribute->getAssignmentOutputFunctionName() ne 'AsIs')) {
-				my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
-				my $exprLocation = $attribute->getAssignmentSourceLocation();
-				my $cppType = $attribute->getCppType();
-				my $splType = $attribute->getSPLType();
-				if ($numberOfParams > 0) {
-					my $findExpr = $attribute->getAssignmentOutputFunctionParameterValueAt(0);
-					my $findExprLocation = $findExpr->getSourceLocation();
-					my $findCppExpr = $findExpr->getCppExpression();
-					my $findSplType = $findExpr->getSPLType();
+			my $attrType = $attribute->getSPLType();
+			my $attrFN = $attribute->getAssignmentOutputFunctionName() if $_ = $attribute->hasAssignmentWithOutputFunction();
+			if ($_ && $attrFN ne 'AsIs') {
+				if ($attrFN eq 'QueryDocumentFieldAsJson') {
+					QueryCommon::handleBSONObjectAsJson($attrName, $attrType);
 				}
-
-				QueryCommon::initBSONObject($attrName, $cppType);
-
-				QueryCommon::handleBSONObject($exprLocation, $attrName, $splType, 0);
-
-				QueryCommon::endBSONObject();
+				else {
+					my $attrNameNotInBO = $attrFN eq 'QueryDocumentMultipleFields';
+					my $exprLocation = $attribute->getAssignmentSourceLocation();
+					my $cppType = $attribute->getCppType();
+					my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
+					my $findPath = $numberOfParams > 0 ? $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression() : '';
+	
+					QueryCommon::initBSONObject($attrName, $attrNameNotInBO, $cppType, $findPath);
+	
+					QueryCommon::handleBSONObject($exprLocation, $attrName, $attrType, 0);
+	
+					QueryCommon::endBSONObject();
+				}
 			}
 		}
 # [----- perl code -----]%>
 
-			submit(otuple, 0);
+			if(otuple.hashCode() != tupleHash) submit(otuple, 0);
 		}
 		conn->done();
 	}
@@ -159,6 +183,7 @@ MY_OPERATOR::OPort0Type * MY_OPERATOR::getOutputTuple() {
 	OPort0Type * otuplePtr = otuplePtr_.get();
 	if(!otuplePtr) {
 		otuplePtr_.reset(new OPort0Type());
+		otuplePtr_->clear();
 		otuplePtr = otuplePtr_.get();
 	}
 	return otuplePtr;

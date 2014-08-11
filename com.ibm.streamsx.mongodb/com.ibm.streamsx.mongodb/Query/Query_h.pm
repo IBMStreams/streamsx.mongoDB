@@ -7,9 +7,9 @@ sub main::generate($$) {
    my $model = SPL::Operator::Instance::OperatorInstance->new($$xml);
    unshift @INC, dirname ($model->getContext()->getOperatorDirectory()) . "/../impl/nl/include";
    $SPL::CodeGenHelper::verboseMode = $model->getContext()->isVerboseModeOn();
-   print '#include <streams_boost/foreach.hpp>', "\n";
    print '#include <streams_boost/thread/tss.hpp>', "\n";
    print '#include <streams_boost/typeof/typeof.hpp>', "\n";
+   print '#include <streams_boost/foreach.hpp>', "\n";
    print '#define foreach STREAMS_BOOST_FOREACH', "\n";
    print "\n";
    print 'namespace boost = streams_boost;', "\n";
@@ -38,6 +38,9 @@ sub main::generate($$) {
    print '	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;', "\n";
    print '	OPort0Type * getOutputTuple();', "\n";
    print '	', "\n";
+   print '	BSONObj findFieldsBO_;', "\n";
+   print '	BSONObj buildFindFieldsBO();', "\n";
+   print "\n";
    print '	BSONObj findQueryBO_;', "\n";
    print '	BSONObj buildFindQueryBO();', "\n";
    print "\n";

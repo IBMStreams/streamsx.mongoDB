@@ -1,6 +1,6 @@
-#include <streams_boost/foreach.hpp>
 #include <streams_boost/thread/tss.hpp>
 #include <streams_boost/typeof/typeof.hpp>
+#include <streams_boost/foreach.hpp>
 #define foreach STREAMS_BOOST_FOREACH
 
 namespace boost = streams_boost;
@@ -28,6 +28,9 @@ private:
 	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;
 	OPort0Type * getOutputTuple();
 	
+	BSONObj findFieldsBO_;
+	BSONObj buildFindFieldsBO();
+
 	BSONObj findQueryBO_;
 	BSONObj buildFindQueryBO();
 
