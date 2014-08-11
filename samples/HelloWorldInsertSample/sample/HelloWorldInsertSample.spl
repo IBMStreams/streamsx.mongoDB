@@ -28,18 +28,18 @@ composite HelloWorldInsertSample {
 
         		/**
 				 * Store a tuple under the specified 'greetings2' key, the resulting document is:
-				 * { "_id" : ObjectId("53c795f7e66ebea0c454c810"), "greeting2" : { "greeting2" : "Hello world" } }
+				 * { "_id" : ObjectId("53c795f7e66ebea0c454c810"), "greeting2" : { "greeting2" : "Hello again" } }
 				 */
         		error2 = InsertDocument("streams", "sample", "greeting2", B2Stream),
 
         		/**
-				 * Store a tuple attribute under the specified 'greetings3' key (simple type always requires key), the resulting document is:
+				 * Store a tuple attribute under the specified 'greetings3' key (simple type always requires a key), the resulting document is:
 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c811"), "greeting3" : "Hello world" }
 				 */
         		error3 = InsertDocument("streams", "sample", "greeting3", greeting1),
 
         		/**
-				 * Store a constant list under the specified 'greetings4' key (list/set type always requires key), the resulting document is:
+				 * Store a constant list under the specified 'greetings4' key (list/set type always requires a key), the resulting document is:
 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c812"), "greeting4" : [  "Hello",  "world" ] }
 				 */
         		error4 = InsertDocument("streams", "sample", "greeting4", ["Hello", "world"]),
