@@ -10,16 +10,15 @@ sub main::generate($$) {
    SPL::CodeGen::implementationPrologue($model);
    print "\n";
    print "\n";
-   #	use Data::Dumper;
+   	use File::Basename qw(dirname);
    	use InsertCommon;
+   	
+   	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
+   	require BSONCommon;
    
    	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
-   
-   	my $dbPortParam = $model->getParameterByName('dbPort');
-   	my $dbPort = (defined $dbPortParam) ? $dbPortParam->getValueAt(0)->getCppExpression() : 27017;
-   	
-   	my $timeoutParam = $model->getParameterByName('timeout');
-   	my $timeout = (defined $timeoutParam) ? $timeoutParam->getValueAt(0)->getCppExpression() : 0.0;
+   	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
+   	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
    print "\n";
    print "\n";
    print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {', "\n";
@@ -62,7 +61,8 @@ sub main::generate($$) {
    print "\n";
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {', "\n";
    print '	';
-   for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
+   	my $numberOfInputPorts = $model->getNumberOfInputPorts();
+   	for (my $i = 0; $i < $numberOfInputPorts; $i++) {
    print "\n";
    print '	  IPort';
    print $i;
@@ -77,8 +77,8 @@ sub main::generate($$) {
    print '	streams_boost::shared_ptr<OPort0Type> otuplePtr;', "\n";
    print '	bool errorFound = false;', "\n";
    print "\n";
-   print '	';
-    foreach my $attribute (@{$model->getOutputPortAt(0)->getAttributes()}) {
+   # [----- perl code -----]
+   	foreach my $attribute (@{$model->getOutputPortAt(0)->getAttributes()}) {
    	  my $name = $attribute->getName();
    	  if ($attribute->hasAssignmentWithOutputFunction()) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
@@ -96,60 +96,52 @@ sub main::generate($$) {
    		  else {
    			my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
    			my $shift = $numberOfParams > 4 ? 2 : 0;
-   			my $expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift);
-   			my $key = 'defaultKey';
+   			my $expr;
+   			my $key = '';
    			my $keyAssigned = $numberOfParams == 4 || $numberOfParams == 6;
    			if ($keyAssigned) {
    				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift)->getCppExpression();
    				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3+$shift);
    			}
+   			else {
+   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift);
+   				if (InsertCommon::keyLess($expr->getSPLType())) {
+   					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
+   				}
+   			}
    			my $exprLocation = $expr->getSourceLocation();
    			my $cppExpr = $expr->getCppExpression();
    			my $splType = $expr->getSPLType();
    			
+   			if ($numberOfInputPorts > 1 && $expr->hasStreamAttributes()) {
+   				my $portNumber = -1;
+   				for (my $i = 0; $i < $numberOfInputPorts; $i++) {
+   					if (index($cppExpr, $model->getInputPortAt($i)->getCppTupleName()) != -1) {
+   						if ($portNumber != -1) {
+   							SPL::CodeGen::errorln("Multiple input ports attributes in expression '%s' are used.", $expr->getSPLExpression(), $expr->getSourceLocation());
+   						}
+   						else {
+   							$portNumber = $i;
+   						}
+   					}
+   				}
+   print "\n";
+   print '		if(port == ';
+   print $portNumber;
+   print ')', "\n";
+   print '			';
+   }
    print "\n";
    print '		{', "\n";
-   print '			', "\n";
-   print '			', "\n";
-   print '			';
-   if ($keyAssigned) {
-   				if (SPL::CodeGen::Type::isPrimitive($splType)) {
-   					my $value = InsertCommon::handlePrimitive($exprLocation, $cppExpr, $splType);
-   print "\n";
-   print '					BSONObjBuilder b0;', "\n";
-   print '					b0.append(';
-   print $key;
-   print ', ';
-   print $value;
-   print '); ', "\n";
-   print '				';
-   }
-   				else {
-   					my ($appendFunction,$objFunction) = InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 1);
-   print "\n";
-   print '					BSONObjBuilder b0;', "\n";
-   print '					b0.';
-   print $appendFunction;
-   print '(';
-   print $key;
-   print ', b1.';
-   print $objFunction;
-   print '());', "\n";
-   print '				';
-   }
-   			}
-   			else {
-   				if (InsertCommon::keyLess($splType)) {
-   					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $splType, $expr->getSPLExpression(), $exprLocation) unless ($keyAssigned);
-   				}
-   				InsertCommon::buildBSONObject($exprLocation, $cppExpr, $splType, 0);
-   			}
+   print '		', "\n";
+   # [----- perl code -----]
+   			InsertCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
    			
    			my $currentDbHost = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()  : $dbHost;
    			my $currentDbPort = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()  : $dbPort;
    			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0+$shift)->getCppExpression();
    			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1+$shift)->getCppExpression();
-   			
+   # [----- perl code -----]
    print "\n";
    print '			', "\n";
    print '			rstring errorMsg = "";', "\n";

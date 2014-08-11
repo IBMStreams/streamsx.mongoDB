@@ -77,56 +77,59 @@
             <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
             <parameter name="v" type="T"/>
           </function>
-          <function name="QueryDocument" returnType="T">
+          <function name="QueryDocumentFieldAsJson" returnType="T">
             <description/>
-            <prototype>&lt;any T&gt; T QueryDocument(rstring db, rstring collection)</prototype>
-            <parameter name="db" type="rstring"/>
-            <parameter name="collection" type="rstring"/>
+            <prototype>&lt;string T&gt; T QueryDocumentFieldAsJson()</prototype>
           </function>
-          <function name="QueryDocument" returnType="T">
+          <function name="QueryDocumentField" returnType="T">
             <description/>
-            <prototype>&lt;any T&gt; T QueryDocument(rstring db, rstring collection, rstring findQuery)</prototype>
-            <parameter name="db" type="rstring"/>
-            <parameter name="collection" type="rstring"/>
-            <parameter name="findQuery" type="rstring"/>
+            <prototype>&lt;any T&gt; T QueryDocumentField()</prototype>
           </function>
-          <function name="QueryDocument" returnType="T">
+          <function name="QueryDocumentField" returnType="T">
             <description/>
-            <prototype>&lt;any T, composite C&gt; T QueryDocument(rstring db, rstring collection, C findFields)</prototype>
-            <parameter name="db" type="rstring"/>
-            <parameter name="collection" type="rstring"/>
-            <parameter name="findFields" type="C"/>
+            <prototype>&lt;any T&gt; T QueryDocumentField(rstring findPath)</prototype>
+            <parameter name="findPath" type="rstring"/>
           </function>
-          <function name="QueryDocument" returnType="T">
+          <function name="QueryDocumentFields" returnType="T">
             <description/>
-            <prototype>&lt;any T, composite C&gt; T QueryDocument(rstring db, rstring collection, C findFields, rstring findQuery)</prototype>
-            <parameter name="db" type="rstring"/>
-            <parameter name="collection" type="rstring"/>
-            <parameter name="findFields" type="C"/>
-            <parameter name="findQuery" type="rstring"/>
+            <prototype>&lt;any T&gt; T QueryDocumentFields()</prototype>
+          </function>
+          <function name="QueryDocumentFields" returnType="T">
+            <description/>
+            <prototype>&lt;any T&gt; T QueryDocumentFields(rstring findPath)</prototype>
+            <parameter name="findPath" type="rstring"/>
           </function>
         </outputFunctions>
         <parametersDescription/>
-        <parameter cardinality="1" expressionMode="Expression" name="dbHost" optional="false" type="rstring">
+        <parameter cardinality="1" expressionMode="AttributeFree" name="collection" optional="false" type="rstring">
           <description/>
         </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="dbPort" optional="true" type="uint32">
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbName" optional="false" type="rstring">
           <description/>
         </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="autoReconnect" optional="true" type="boolean">
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
           <description/>
         </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="timeout" optional="true" type="float64">
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
           <description/>
         </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="ignoreDocumentId" optional="true" type="boolean">
+        <parameter cardinality="1" expressionMode="Expression" name="findFields" optional="true" type="map&lt;rstring,int32>">
           <description sampleUri=""/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="findQuery" optional="true" type="">
+          <description/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="nToReturn" optional="true" type="uint32">
+          <description/>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
+          <description/>
         </parameter>
         <inputPort minNumPorts="0" optional="true" windowPunctInputMode="WindowBound">
           <description/>
           <windowPolicy>OptionallyWindowed</windowPolicy>
         </inputPort>
-        <outputPort expressionMode="Expression" minNumPorts="0" optional="true" windowPunctOutputMode="Generating">
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
           <description/>
         </outputPort>
       </primitiveOp>

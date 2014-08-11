@@ -1,93 +1,108 @@
-package InsertCommon;
+package BSONCommon;
 
 use strict;
 use warnings;
 
+
 sub buildBSONObject(@) {
 	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
 
+	if(SPL::CodeGen::Type::isPrimitive($splType)) {
+		my $value = handlePrimitive($exprLocation, $cppExpr, $splType);
+		return ('append', $value);
+	}
 	if(SPL::CodeGen::Type::isList($splType) || SPL::CodeGen::Type::isBList($splType) ||
 	   SPL::CodeGen::Type::isSet($splType) || SPL::CodeGen::Type::isBSet($splType)) {
 		buildBSONObjectFromListOrSet($exprLocation, $cppExpr, $splType, $seq);
-		return ('appendArray','arr');
+		return ('appendArray', "b$seq.arr()");
 	}
 	elsif(SPL::CodeGen::Type::isMap($splType) || SPL::CodeGen::Type::isBMap($splType)) {
 		buildBSONObjectFromMap($exprLocation, $cppExpr, $splType, $seq);
-		return ('append','obj');
+		return ('append', "b$seq.obj()");
 	}
 	elsif(SPL::CodeGen::Type::isTuple($splType)) {
 		buildBSONObjectFromTuple($exprLocation, $cppExpr, $splType, $seq);
-		return ('append','obj');
+		return ('append', "b$seq.obj()");
 	}
 	else {
 		SPL::CodeGen::errorln("Unsupported type %s.", $splType, $exprLocation);
 	}
 }
 
+
 sub buildBSONObjectFromListOrSet(@) {
 	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
-	
-	print "\n"; print "\t" x $seq; print "BSONArrayBuilder b$seq; \n";
 	my $valueType = SPL::CodeGen::Type::getElementType($splType);
-	print "\t" x $seq; print "typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq; \n"; 
-	print "\t" x $seq; print "const cppExpr$seq listData$seq = $cppExpr; \n"; 
-	print "\t" x $seq; print "for (cppExpr$seq"."::const_iterator it$seq = listData$seq.begin(); it$seq != listData$seq.end(); ++it$seq) { \n";
-	if(SPL::CodeGen::Type::isPrimitive($valueType)) {
-		my $value = handlePrimitive($exprLocation, "*it$seq", $valueType);
-		print "\t" x $seq; print "\t b$seq.append($value); \n";
+	my $nextSeq = $seq+1;
+	
+print qq(
+	BSONArrayBuilder b$seq;
+	typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq;
+	const cppExpr$seq values$seq = $cppExpr;
+	foreach (const cppExpr$seq\::value_type & value$seq, values$seq) {
+);
+
+	my ($appendFunction, $value) = buildBSONObject($exprLocation, "value$seq", $valueType, $nextSeq);
+
+print qq(
+	b$seq.append($value);
 	}
-	else {
-		my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "*it$seq", $valueType, $seq+1);
-		print "\t" x $seq; print "\t b$seq.append(b".($seq+1).".$objFunction()); \n";
-	}
-	print "\t" x $seq; print "} \n";
+);
 }
+
 
 sub buildBSONObjectFromMap(@) {
 	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
+	my $valueType = SPL::CodeGen::Type::getValueType($splType);
+	my $nextSeq = $seq+1;
 	
 	if(!SPL::CodeGen::Type::isString(SPL::CodeGen::Type::getKeyType($splType))) {
 		SPL::CodeGen::errorln("The map key type %s must be of string type.", SPL::CodeGen::Type::getKeyType($splType), $exprLocation);
 	}
 
-	print "\n"; print "\t" x $seq; print "BSONObjBuilder b$seq; \n";
-	my $valueType = SPL::CodeGen::Type::getValueType($splType);
-	print "\t" x $seq; print "typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq; \n"; 
-	print "\t" x $seq; print "const cppExpr$seq mapData$seq = $cppExpr; \n"; 
-	print "\t" x $seq; print "for (cppExpr$seq"."::const_iterator it$seq = mapData$seq.begin(); it$seq != mapData$seq.end(); ++it$seq) { \n";
-	if(SPL::CodeGen::Type::isPrimitive($valueType)) {
-		my $value = handlePrimitive($exprLocation, "it$seq->second", $valueType);
-		print "\t" x $seq; print "\t b$seq.append(it$seq->first, $value); \n";
+print qq(
+	BSONObjBuilder b$seq;
+	typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq; 
+	const cppExpr$seq values$seq = $cppExpr;
+	foreach (const cppExpr$seq\::value_type & value$seq, values$seq) {
+);
+
+	my ($appendFunction, $value) = buildBSONObject($exprLocation, "value$seq.second", $valueType, $nextSeq);
+
+print qq(
+	b$seq.$appendFunction(value$seq.first, $value);
 	}
-	else {
-		my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "it$seq->second", $valueType, $seq+1);
-		print "\t" x $seq; print "b$seq.$appendFunction(it$seq->first, b".($seq+1).".$objFunction()); \n";
-	}
-	print "\t" x $seq; print "} \n";
+);
 }
+
 
 sub buildBSONObjectFromTuple(@) {
 	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
-
 	my @attrNames = SPL::CodeGen::Type::getAttributeNames($splType);
 	my @attrTypes = SPL::CodeGen::Type::getAttributeTypes($splType);
+	my $nextSeq = $seq+1;
 	
-	print "\n"; print "\t" x $seq; print "BSONObjBuilder b$seq; \n";
-	print "\t" x $seq; print "typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq; \n"; 
-	print "\t" x $seq; print "const cppExpr$seq tupleData$seq = $cppExpr; \n"; 
+print qq(
+	BSONObjBuilder b$seq;
+	typedef STREAMS_BOOST_TYPEOF(($cppExpr)) cppExpr$seq; 
+	const cppExpr$seq tupleData$seq = $cppExpr; 
+);
+
 	for (my $i = 0; $i < @attrNames; $i++) {
-		print "\t" x $seq; print "{ \n"; 
-		if(SPL::CodeGen::Type::isPrimitive($attrTypes[$i])) {
-			my $value = handlePrimitive($exprLocation, "tupleData$seq.get_$attrNames[$i]()", $attrTypes[$i]);
-			print "\t" x $seq; print "\t b$seq.append(\"$attrNames[$i]\", $value); \n";
-		}
-		else {
-			my ($appendFunction,$objFunction) = buildBSONObject($exprLocation, "tupleData$seq.get_$attrNames[$i]()", $attrTypes[$i], $seq+1);
-			print "\t" x $seq; print "b$seq.$appendFunction(\"$attrNames[$i]\", b".($seq+1).".$objFunction()); \n";
-		}
-		print "\t" x $seq; print "} \n"; 
+print qq(
+	{
+);
+
+		my ($appendFunction, $value) = buildBSONObject($exprLocation, "tupleData$seq.get_$attrNames[$i]()", $attrTypes[$i], $nextSeq);
+
+print qq(
+	b$seq.$appendFunction("$attrNames[$i]", $value);
 	}
+);
+	}
+	
 }
+
 
 sub handlePrimitive(@) {
 	my ($exprLocation, $value, $valueType) = @_;
@@ -110,7 +125,7 @@ sub handlePrimitive(@) {
 		return "static_cast<long long>($value)";
 	}
 	elsif(SPL::CodeGen::Type::isTimestamp($valueType)) {
-		return "SPL::Functions::Time::ctime($value)";
+		return "Date_t(static_cast<long long>($value.getSeconds()) * 1000)";
 	}
 	elsif(SPL::CodeGen::Type::isUString($valueType)) {
 		return "spl_cast<rstring,ustring>::cast($value)";
@@ -119,13 +134,8 @@ sub handlePrimitive(@) {
 		return "spl_cast<rstring,xml>::cast($value)";
 	}
 	else {
-		return "$value";
+		return $value;
 	}
-}
-
-sub keyLess($) {
-	my ($splType) = @_;
-	return not (SPL::CodeGen::Type::isBMap($splType) || SPL::CodeGen::Type::isMap($splType) || SPL::CodeGen::Type::isTuple($splType));
 }
 
 1;
