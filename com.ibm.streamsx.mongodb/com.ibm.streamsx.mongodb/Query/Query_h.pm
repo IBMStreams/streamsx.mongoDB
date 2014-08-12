@@ -33,8 +33,6 @@ sub main::generate($$) {
    print '	void process(Tuple const & tuple, uint32_t port);', "\n";
    print "\n";
    print 'private:', "\n";
-   print '//	DBClientConnection conn_;', "\n";
-   print '	', "\n";
    print '	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;', "\n";
    print '	OPort0Type * getOutputTuple();', "\n";
    print '	', "\n";

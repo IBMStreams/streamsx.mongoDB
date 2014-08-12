@@ -23,8 +23,6 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
-//	DBClientConnection conn_;
-	
 	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;
 	OPort0Type * getOutputTuple();
 	

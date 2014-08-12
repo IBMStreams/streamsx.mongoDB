@@ -89,16 +89,16 @@
         <name>findFields</name>
         <description sampleUri=""></description>
         <optional>true</optional>
-        <rewriteAllowed>true</rewriteAllowed>
+        <rewriteAllowed>false</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
         <type>map&lt;rstring,int32></type>
         <cardinality>1</cardinality>
       </parameter>
       <parameter>
         <name>findQuery</name>
-        <description/>
+        <description></description>
         <optional>true</optional>
-        <rewriteAllowed>true</rewriteAllowed>
+        <rewriteAllowed>false</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
         <type></type>
         <cardinality>1</cardinality>

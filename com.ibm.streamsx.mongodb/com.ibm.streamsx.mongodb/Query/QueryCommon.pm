@@ -61,7 +61,6 @@ sub handleBSONObject(@) {
 	if ($attrName) {
 	
 print qq(
-		cout << "BO: " << bo$seq.jsonString() << endl;
 		if(bo$seq.hasElement("$attrName")) {
 			const BSONElement & be$seq = bo$seq.getField("$attrName");
 );
