@@ -1,0 +1,142 @@
+namespace sample;
+
+use com.ibm.streamsx.mongodb::*;
+
+composite HelloWorldQuerySample {
+	graph
+		stream<tuple<map<rstring,int32> aa> query> beaconOutStream = Beacon()  {
+            param iterations: 1;
+            output beaconOutStream :
+            	query = {aa = {"$type": 3}};
+        }
+        
+ 		/**
+ 		 * The "streams.sample" has the following documents (inserted by HelloWorldInsertSample):
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87b"), "greeting1" : "Hello world" }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87c"), "greeting3" : "Hello world" }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87d"), "greeting2" : { "greeting2" : "Hello again" } }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87e"), "greeting4" : [  "Hello",  "world" ] }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87f"), "greeting4" : [  "Hello",  "world" ] }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c880"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c881"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c882"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
+		 * { "_id" : ObjectId("53e243e2e66ebea0c454c883"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
+		 */
+
+ 		/**
+		 * Get all documents, assign 'greeting1' string field if exists, the resulting tuple is:
+		 * { greeting1 = "Hello world" }
+		 */
+        stream<rstring greeting1> QueryResult1 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        	output QueryResult :
+        		greeting1 = QueryDocumentField();
+        }
+        
+ 		/**
+		 * Get all documents, assign each document as JSON, drop _id field.
+		 */
+        stream<rstring json> QueryResult2 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        		findFields : {"_id" : 0};
+        	output QueryResult :
+        		json = QueryDocumentFieldAsJson();
+        }
+        
+ 		/**
+		 * Get all documents, assign 'greeting4' array field if exists, the resulting tuples are:
+		 * {greeting4=["Hello","world"]}
+		 * {greeting4=["Hello","world"]}
+		 */
+        stream<list<rstring> greeting4> QueryResult3 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        	output QueryResult :
+        		greeting4 = QueryDocumentField();
+        }
+        
+ 		/**
+		 * Get only documents where 'greeting2' map<rstring,rstring> field exists, assign it, the resulting tuple is:
+		 * {greeting2={"greeting2":"Hello again"}}
+		 */
+        stream<map<rstring,rstring> greeting2> QueryResult4 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        		findQuery : {greeting2 = {"$exists": true}};
+        	output QueryResult :
+        		greeting2 = QueryDocumentField();
+        }
+        
+ 		/**
+		 * Get one partial document where 'greeting5_1' rstring field exists, assign it, the resulting tuple is:
+		 * {greeting5_1="Hello"}
+		 */
+        stream<rstring greeting5_1> QueryResult5 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        		findFields : {"greeting5_1" : 1};
+        		findQuery : {greeting5_1 = {"$exists": true}};
+        		nToReturn : 1u;
+        	output QueryResult :
+        		greeting5_1 = QueryDocumentField();
+        }
+        
+ 		/**
+		 * Get only documents where 'greeting2' field exists, fetch 'greeting2' from path 'greeting2', the resulting tuple is:
+		 * {greeting2="Hello again"}
+		 */
+        stream<rstring greeting2> QueryResult6 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        		findQuery : {greeting2 = {"$exists": true}};
+        	output QueryResult :
+        		greeting2 = QueryDocumentField("greeting2");
+        }
+        
+ 		/**
+		 * Get all documents with flat structure, the resulting tuple is:
+		 * {allDocs={"greeting1":"Hello world"}}
+		 * {allDocs={"greeting1":"Hello world"}}
+		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+		 * {allDocs={"greeting6_1":"Hello","greeting6_2":"world"}}
+		 * {allDocs={"greeting6_1":"Hello","greeting6_2":"world"}}
+		 */
+        stream<map<rstring,rstring> allDocs> QueryResult7 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        	output QueryResult :
+        		allDocs = QueryDocumentMultipleFields();
+        }
+        
+ 		/**
+		 * Get all documents where 'greeting2.greeting2' rstring field exists,
+		 * assign the value to 'field' (aka 'field' is alias name to 'greeting2.greeting2'), the resulting tuple is:
+		 * {field="Hello again"}
+		 */
+        stream<rstring field> QueryResult8 as QueryResult = Query(beaconOutStream) {
+        	param
+        		dbHost : "localhost";
+        		dbName : "streams";
+        		collection : "sample";
+        		findQuery : {"greeting2.greeting2" : {"$exists": true}};
+        	output QueryResult :
+        		field = QueryDocumentMultipleFields("greeting2.greeting2");
+        }
+}
