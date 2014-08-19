@@ -3,7 +3,32 @@
  xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
  <info:identity>
    <info:name>com.ibm.streamsx.mongodb</info:name>
-   <info:description></info:description>
+   <info:description>
+Support for [http://www.mongodb.org|MongoDB] database.
+
+This toolkit provides MongoDB insert and query functionality.
+SPL to/from BSON validation and conversion is done automatically at build time.
+
+Below a table for BSON/SPL conversion:
+
+	BSON	SPL
+	
+	BinData	blob
+	Bool	boolean
+	N/A	complex
+	Date	timestamp
+	Double	decimal/float64
+	Int	(u)int8
+	Int	(u)int16
+	Int	(u)int32
+	Long	(u)int64
+	String	enum/rstring/ustring/xml
+	Array	List/Set
+	Object	Tuple/Map
+
+**Third-party libraries**
+* This toolkit embeds mongodb headers and libs under impl/include and impl/lib accordingly.
+   </info:description>
    <info:version>1.0.0</info:version>
    <info:requiredProductVersion>3.2.1.1</info:requiredProductVersion>
  </info:identity>

@@ -1,3 +1,4 @@
+#include <SPL/Runtime/Operator/OperatorMetrics.h>
 #include <streams_boost/shared_ptr.hpp>
 #include <streams_boost/typeof/typeof.hpp>
 #include <streams_boost/foreach.hpp>
@@ -25,6 +26,8 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
+	Metric & dcpsMetric_;
+
 	string buildConnUrl(const string& dbHost, uint32_t dbPort);
 	string buildDbCollection(const string& db, const string& collection);
 };

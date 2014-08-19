@@ -2,29 +2,61 @@
 <toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="3.2.1.1" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
   <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="3.2.1.1" version="1.0.0">
-    <description/>
+    <description>
+Support for [http://www.mongodb.org|MongoDB] database.
+
+This toolkit provides MongoDB insert and query functionality.
+SPL to/from BSON validation and conversion is done automatically at build time.
+
+Below a table for BSON/SPL conversion:
+
+	BSON	SPL
+	
+	BinData	blob
+	Bool	boolean
+	N/A	complex
+	Date	timestamp
+	Double	decimal/float64
+	Int	(u)int8
+	Int	(u)int16
+	Int	(u)int32
+	Long	(u)int64
+	String	enum/rstring/ustring/xml
+	Array	List/Set
+	Object	Tuple/Map
+
+**Third-party libraries**
+* This toolkit embeds mongodb headers and libs under impl/include and impl/lib accordingly.
+   </description>
     <uriTable>
       <uri index="2" value="com.ibm.streamsx.mongodb/Query"/>
       <uri index="1" value="com.ibm.streamsx.mongodb/Insert"/>
     </uriTable>
     <namespace name="com.ibm.streamsx.mongodb">
       <primitiveOp language="Cpp" modelUriIndex="1" name="Insert" public="true">
-        <description/>
+        <description>
+Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
+The operator uses db connection pool and supports multiple threads. It has one custom output function: InsertDocument.
+
+Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
         <outputFunctions name="MongoFS">
           <function name="AsIs" returnType="T">
-            <description/>
+            <description>a default assignment</description>
             <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
             <parameter name="v" type="T"/>
           </function>
           <function name="InsertDocument" returnType="rstring">
-            <description/>
+            <description>writes 'data' to 'db.coolection'. T can be of type tuple or map only.</description>
             <prototype>&lt;any T&gt; rstring InsertDocument(rstring db, rstring collection, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
             <parameter name="data" type="T"/>
           </function>
           <function name="InsertDocument" returnType="rstring">
-            <description/>
+            <description>writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
@@ -32,7 +64,7 @@
             <parameter name="data" type="T"/>
           </function>
           <function name="InsertDocument" returnType="rstring">
-            <description/>
+            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection'. T can be of type tuple or map only.</description>
             <prototype>&lt;any T&gt; rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, T data)</prototype>
             <parameter name="dbHost" type="rstring"/>
             <parameter name="dbPort" type="uint32"/>
@@ -41,7 +73,7 @@
             <parameter name="data" type="T"/>
           </function>
           <function name="InsertDocument" returnType="rstring">
-            <description/>
+            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="dbHost" type="rstring"/>
             <parameter name="dbPort" type="uint32"/>
@@ -53,24 +85,34 @@
         </outputFunctions>
         <parametersDescription/>
         <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
-          <description/>
+          <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
         </parameter>
         <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
-          <description/>
+          <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
         </parameter>
         <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
-          <description/>
+          <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
         </parameter>
         <inputPort minNumPorts="0" optional="true" windowPunctInputMode="Oblivious">
           <description/>
           <windowPolicy>NonWindowed</windowPolicy>
         </inputPort>
-        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Free">
           <description/>
         </outputPort>
+        <codeTemplate name="Insert" template="stream&lt;rstring error> ${outputStream}1 = Insert(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = InsertDocument(&quot;db&quot;, &quot;collection&quot;, attr);&#xA;}&#xA;">
+          <description>Basic Insert template</description>
+        </codeTemplate>
       </primitiveOp>
       <primitiveOp language="Cpp" modelUriIndex="2" name="Query" public="true">
-        <description/>
+        <description>
+Query reads SPL data from MongoDB collection. No predefined db schema is required, the data is automatically mapped from BSON to SPL.
+The operator uses db connection pool and supports multiple threads. It has three custom output functions: QueryDocumentField, QueryDocumentFieldAsJson and QueryDocumentMultipleFields.
+
+Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
         <outputFunctions name="MongoFS">
           <function name="AsIs" returnType="T">
             <description/>
@@ -125,13 +167,16 @@
         <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
           <description/>
         </parameter>
-        <inputPort minNumPorts="0" optional="true" windowPunctInputMode="WindowBound">
+        <inputPort maxNumPorts="1" minNumPorts="1" optional="false" windowPunctInputMode="Oblivious">
           <description/>
-          <windowPolicy>OptionallyWindowed</windowPolicy>
+          <windowPolicy>NonWindowed</windowPolicy>
         </inputPort>
         <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
           <description/>
         </outputPort>
+        <codeTemplate name="Query" template="stream&lt;${schema}> ${outputStream} = Query(${inputStream}) {&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;&quot;;&#xA;&#x9;&#x9;dbName : &quot;&quot;;&#xA;&#x9;&#x9;collection : &quot;&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;attr = QueryDocumentField();&#xA;}">
+          <description>Basic Query template</description>
+        </codeTemplate>
       </primitiveOp>
     </namespace>
   </toolkit>

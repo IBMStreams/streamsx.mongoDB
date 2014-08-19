@@ -35,7 +35,7 @@ sub main::generate($$) {
    print '	return dbCollection;', "\n";
    print '}', "\n";
    print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() {', "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")) {', "\n";
    print '	try {', "\n";
    print '		ScopedDbConnection conn(buildConnUrl(';
    print $dbHost;
@@ -47,6 +47,7 @@ sub main::generate($$) {
    print '		if(!conn.ok()) {', "\n";
    print '			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");', "\n";
    print '		}', "\n";
+   print '		dcpsMetric_.setValueNoLock(conn.getNumConnections());', "\n";
    print '		conn.done();', "\n";
    print '	}', "\n";
    print '	catch( const DBException &e ) {', "\n";
@@ -153,6 +154,7 @@ sub main::generate($$) {
    print '), (double)';
    print $timeout;
    print ');', "\n";
+   print '				dcpsMetric_.setValue(conn.getNumConnections());', "\n";
    print '				', "\n";
    print '				if(conn.ok()) {', "\n";
    print '					conn->insert(buildDbCollection(';

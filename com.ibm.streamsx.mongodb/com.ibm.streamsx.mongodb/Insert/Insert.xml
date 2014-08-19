@@ -2,28 +2,42 @@
 <operatorModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ibm.com/xmlns/prod/streams/spl/operator" xmlns:cmn="http://www.ibm.com/xmlns/prod/streams/spl/common" xsi:schemaLocation="http://www.ibm.com/xmlns/prod/streams/spl/operator operatorModel.xsd">
   <cppOperatorModel>
     <context>
-      <description></description>
+      <description>
+Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
+The operator uses db connection pool and supports multiple threads. It has one custom output function: InsertDocument.
+
+Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
+      <metrics>
+        <metric>
+          <name>dbConnectionPoolSize</name>
+          <description/>
+          <kind>Gauge</kind>
+        </metric>
+      </metrics>
       <customOutputFunctions>
         <customOutputFunction>
           <name>MongoFS</name>
           <function pseudoFunction="true">
-            <description></description>
+            <description>a default assignment</description>
             <prototype>&lt;any T> T AsIs(T v)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>writes 'data' to 'db.coolection'. T can be of type tuple or map only.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection'. T can be of type tuple or map only.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
         </customOutputFunction>
@@ -41,13 +55,25 @@
       </libraryDependencies>
       <providesSingleThreadedContext>Always</providesSingleThreadedContext>
       <allowCustomLogic>false</allowCustomLogic>
+      <codeTemplates>
+        <codeTemplate name="Insert">
+          <description>Basic Insert template</description>
+          <template>stream&lt;rstring error> ${outputStream}1 = Insert(${inputStream}){
+	param
+		dbHost : &quot;localhost&quot;;
+	output ${outputStream} :
+		error = InsertDocument(&quot;db&quot;, &quot;collection&quot;, attr);
+}
+</template>
+        </codeTemplate>
+      </codeTemplates>
     </context>
     <parameters>
       <description></description>
       <allowAny>false</allowAny>
       <parameter>
         <name>dbHost</name>
-        <description></description>
+        <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
         <optional>false</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -56,7 +82,7 @@
       </parameter>
       <parameter>
         <name>dbPort</name>
-        <description></description>
+        <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -65,7 +91,7 @@
       </parameter>
       <parameter>
         <name>timeout</name>
-        <description></description>
+        <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -93,7 +119,7 @@
           <default>AsIs</default>
           <type>MongoFS</type>
         </outputFunctions>
-        <windowPunctuationOutputMode>Generating</windowPunctuationOutputMode>
+        <windowPunctuationOutputMode>Free</windowPunctuationOutputMode>
         <windowPunctuationInputPort>-1</windowPunctuationInputPort>
         <tupleMutationAllowed>false</tupleMutationAllowed>
         <cardinality>1</cardinality>

@@ -75,7 +75,8 @@ sub main::generate($$) {
    print "\n";
    print '}', "\n";
    print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {', "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")),', "\n";
+   print '							 findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {', "\n";
    print '	try {', "\n";
    print '		ScopedDbConnection conn(buildConnUrl(';
    print $dbHost;
@@ -87,6 +88,7 @@ sub main::generate($$) {
    print '		if(!conn.ok()) {', "\n";
    print '			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");', "\n";
    print '		}', "\n";
+   print '		dcpsMetric_.setValueNoLock(conn.getNumConnections());', "\n";
    print '		conn.done();', "\n";
    print '	}', "\n";
    print '	catch( const DBException &e ) {', "\n";
@@ -194,6 +196,7 @@ sub main::generate($$) {
    print '		SPLAPPLOG(L_ERROR, error, "MongoDB Query");', "\n";
    print '	}', "\n";
    print "\n";
+   print '	dcpsMetric_.setValue(conn->getNumConnections());', "\n";
    print '	if(conn->ok()) {', "\n";
    print '		streams_boost::scoped_ptr<DBClientCursor> cursor((*conn)->query(buildDbCollection(';
    print $db;
@@ -244,7 +247,12 @@ sub main::generate($$) {
    print '		conn->done();', "\n";
    print '	}', "\n";
    print "\n";
-   print '	if(!docFound) submit(*otuplePtr, 0);', "\n";
+   print '	if(docFound) {', "\n";
+   print '		submit(Punctuation::WindowMarker, 0);', "\n";
+   print '	}', "\n";
+   print '	else {', "\n";
+   print '		submit(*otuplePtr, 0);', "\n";
+   print '	}', "\n";
    print '}', "\n";
    print "\n";
    print 'streams_boost::thread_specific_ptr<MY_OPERATOR_SCOPE::MY_OPERATOR::OPort0Type> MY_OPERATOR_SCOPE::MY_OPERATOR::otuplePtr_;', "\n";

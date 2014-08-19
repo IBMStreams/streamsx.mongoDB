@@ -7,6 +7,7 @@ sub main::generate($$) {
    my $model = SPL::Operator::Instance::OperatorInstance->new($$xml);
    unshift @INC, dirname ($model->getContext()->getOperatorDirectory()) . "/../impl/nl/include";
    $SPL::CodeGenHelper::verboseMode = $model->getContext()->isVerboseModeOn();
+   print '#include <SPL/Runtime/Operator/OperatorMetrics.h>', "\n";
    print '#include <streams_boost/shared_ptr.hpp>', "\n";
    print '#include <streams_boost/typeof/typeof.hpp>', "\n";
    print '#include <streams_boost/foreach.hpp>', "\n";
@@ -35,6 +36,8 @@ sub main::generate($$) {
    print '	void process(Tuple const & tuple, uint32_t port);', "\n";
    print "\n";
    print 'private:', "\n";
+   print '	Metric & dcpsMetric_;', "\n";
+   print "\n";
    print '	string buildConnUrl(const string& dbHost, uint32_t dbPort);', "\n";
    print '	string buildDbCollection(const string& db, const string& collection);', "\n";
    print '};', "\n";

@@ -2,7 +2,21 @@
 <operatorModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ibm.com/xmlns/prod/streams/spl/operator" xmlns:cmn="http://www.ibm.com/xmlns/prod/streams/spl/common" xsi:schemaLocation="http://www.ibm.com/xmlns/prod/streams/spl/operator operatorModel.xsd">
   <cppOperatorModel>
     <context>
-      <description></description>
+      <description>
+Query reads SPL data from MongoDB collection. No predefined db schema is required, the data is automatically mapped from BSON to SPL.
+The operator uses db connection pool and supports multiple threads. It has three custom output functions: QueryDocumentField, QueryDocumentFieldAsJson and QueryDocumentMultipleFields.
+
+Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
+      <metrics>
+        <metric>
+          <name>dbConnectionPoolSize</name>
+          <description/>
+          <kind>Gauge</kind>
+        </metric>
+      </metrics>
       <customOutputFunctions>
         <customOutputFunction>
           <name>MongoFS</name>
@@ -45,6 +59,19 @@
       </libraryDependencies>
       <providesSingleThreadedContext>Always</providesSingleThreadedContext>
       <allowCustomLogic>false</allowCustomLogic>
+      <codeTemplates>
+        <codeTemplate name="Query">
+          <description>Basic Query template</description>
+          <template>stream&lt;${schema}> ${outputStream} = Query(${inputStream}) {
+	param
+		dbHost : &quot;&quot;;
+		dbName : &quot;&quot;;
+		collection : &quot;&quot;;
+	output ${outputStream} :
+		attr = QueryDocumentField();
+}</template>
+        </codeTemplate>
+      </codeTemplates>
     </context>
     <parameters>
       <description></description>
@@ -123,13 +150,15 @@
       </parameter>
     </parameters>
     <inputPorts>
-      <inputPortOpenSet>
+      <inputPortSet>
         <description></description>
         <windowingDescription></windowingDescription>
         <tupleMutationAllowed>false</tupleMutationAllowed>
-        <windowingMode>OptionallyWindowed</windowingMode>
-        <windowPunctuationInputMode>WindowBound</windowPunctuationInputMode>
-      </inputPortOpenSet>
+        <windowingMode>NonWindowed</windowingMode>
+        <windowPunctuationInputMode>Oblivious</windowPunctuationInputMode>
+        <cardinality>1</cardinality>
+        <optional>false</optional>
+      </inputPortSet>
     </inputPorts>
     <outputPorts>
       <outputPortSet>

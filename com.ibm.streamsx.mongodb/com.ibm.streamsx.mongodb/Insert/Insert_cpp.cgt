@@ -26,12 +26,13 @@ string MY_OPERATOR::buildDbCollection(const string& db, const string& collection
 	return dbCollection;
 }
 
-MY_OPERATOR::MY_OPERATOR() {
+MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")) {
 	try {
 		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
 		if(!conn.ok()) {
 			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");
 		}
+		dcpsMetric_.setValueNoLock(conn.getNumConnections());
 		conn.done();
 	}
 	catch( const DBException &e ) {
@@ -111,6 +112,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 			rstring errorMsg = "";
 			try {
 				ScopedDbConnection conn(buildConnUrl(<%=$currentDbHost%>, <%=$currentDbPort%>), (double)<%=$timeout%>);
+				dcpsMetric_.setValue(conn.getNumConnections());
 				
 				if(conn.ok()) {
 					conn->insert(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
