@@ -5,3 +5,7 @@ MONGODB_TOOLKIT=$(echo ${STREAMS_STUDIO_SPL_PATH} | grep -oP '/[^:]*com.ibm.stre
 if [[ ! -L $MONGODB_TOOLKIT/impl/include/boost ]]; then
 	ln -s $STREAMS_INSTALL/ext/include/streams_boost $MONGODB_TOOLKIT/impl/include/boost
 fi
+
+if [ "$1" = "includePath" ]; then 
+	echo ". -fno-strict-aliasing";
+fi
