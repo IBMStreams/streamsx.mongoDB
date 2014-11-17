@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common"
- xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
- <info:identity>
-   <info:name>com.ibm.streamsx.mongodb</info:name>
-   <info:description>
+<info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
+  <info:identity>
+    <info:name>com.ibm.streamsx.mongodb</info:name>
+    <info:description>
 Support for [http://www.mongodb.org|MongoDB] database.
 
-This toolkit provides MongoDB insert and query functionality.
-SPL to/from BSON validation and conversion is done automatically at build time.
+MongoDB is an open-source document-oriented NoSQL database.
+[http://bsonspec.org|BSON] is a binary serialization JSON-like format used to store documents and make remote procedure calls in MongoDB.
+This toolkit provides MongoDB insert/query functionality where SPL to/from BSON conversion is generated automatically.
 
 Below a table for BSON/SPL conversion:
 
@@ -27,10 +27,10 @@ Below a table for BSON/SPL conversion:
 	Object	Tuple/Map
 
 **Third-party libraries**
-* This toolkit embeds mongodb headers and libs under impl/include and impl/lib accordingly.
+* This toolkit embeds mongodb headers/libraries under impl/&lt;include|lib>.
    </info:description>
-   <info:version>1.0.0</info:version>
-   <info:requiredProductVersion>3.2.1.1</info:requiredProductVersion>
- </info:identity>
- <info:dependencies/>
+    <info:version>1.0.0</info:version>
+    <info:requiredProductVersion>3.1.0</info:requiredProductVersion>
+  </info:identity>
+  <info:dependencies/>
 </info:toolkitInfoModel>

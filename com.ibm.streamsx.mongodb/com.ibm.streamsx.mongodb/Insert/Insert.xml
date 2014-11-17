@@ -4,7 +4,10 @@
     <context>
       <description>
 Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
-The operator uses db connection pool and supports multiple threads. It has one custom output function: InsertDocument.
+The operator uses db connection pool and supports multiple threads.
+
+Insert has one custom output function:
+* InsertDocument writes data (any SPL expression) with or without a specified root tag.
 
 Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
 
@@ -101,7 +104,7 @@ One output port is defined for use with custom output functions and optionally t
     </parameters>
     <inputPorts>
       <inputPortOpenSet>
-        <description></description>
+        <description>The Insert operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
         <windowingDescription></windowingDescription>
         <tupleMutationAllowed>false</tupleMutationAllowed>
         <windowingMode>NonWindowed</windowingMode>
@@ -110,7 +113,7 @@ One output port is defined for use with custom output functions and optionally t
     </inputPorts>
     <outputPorts>
       <outputPortSet>
-        <description></description>
+        <description>The Insert operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
         <expressionMode>Expression</expressionMode>
         <autoAssignment>false</autoAssignment>
         <completeAssignment>false</completeAssignment>

@@ -4,11 +4,16 @@
     <context>
       <description>
 Query reads SPL data from MongoDB collection. No predefined db schema is required, the data is automatically mapped from BSON to SPL.
-The operator uses db connection pool and supports multiple threads. It has three custom output functions: QueryDocumentField, QueryDocumentFieldAsJson and QueryDocumentMultipleFields.
+The operator uses db connection pool and supports multiple threads.
 
-Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+Query has three custom output functions:
+* QueryDocumentField reads data from a fieldName as the output attribute name, with or without a specified search field tag.
+* QueryDocumentMultipleFields reads data under a fieldName as the output attribute name, with or without a specified search field tag..
+* QueryDocumentFieldAsJson reads the whole data as JSON string.
 
-One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+Single input port is allowed.
+
+One output port is defined for use with custom output functions, multiple tuples maybe submitted per one query.
       </description>
       <metrics>
         <metric>
@@ -25,23 +30,23 @@ One output port is defined for use with custom output functions and optionally t
             <prototype>&lt;any T> T AsIs(T v)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>Reads document from 'db.coolection' as a JSON string. T can be of type rstring or ustring only.</description>
             <prototype>&lt;string T> T QueryDocumentFieldAsJson()</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name.</description>
             <prototype>&lt;any T> T QueryDocumentField()</prototype>
           </function>
           <function>
-            <description></description>
+            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name, then for a findPath name.</description>
             <prototype>&lt;any T> T QueryDocumentField(rstring findPath)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description></description>
+            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name.</description>
             <prototype>&lt;any T> T QueryDocumentMultipleFields()</prototype>
           </function>
           <function>
-            <description></description>
+            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name, then for a findPath name.</description>
             <prototype>&lt;any T> T QueryDocumentMultipleFields(rstring findPath)</prototype>
           </function>
         </customOutputFunction>
@@ -78,7 +83,7 @@ One output port is defined for use with custom output functions and optionally t
       <allowAny>false</allowAny>
       <parameter>
         <name>collection</name>
-        <description></description>
+        <description>The mandatory 'rstring' parameter specifies MongoDB collection.</description>
         <optional>false</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -87,7 +92,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>dbName</name>
-        <description></description>
+        <description>The mandatory 'rstring' parameter specifies MongoDB database.</description>
         <optional>false</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -96,7 +101,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>dbHost</name>
-        <description></description>
+        <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
         <optional>false</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -105,7 +110,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>dbPort</name>
-        <description></description>
+        <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -114,7 +119,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>findFields</name>
-        <description sampleUri=""></description>
+        <description>The optional 'map&lt;rstring,int32>' parameter specifies which fields to include or drop from the result.</description>
         <optional>true</optional>
         <rewriteAllowed>false</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
@@ -123,7 +128,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>findQuery</name>
-        <description></description>
+        <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
         <optional>true</optional>
         <rewriteAllowed>false</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
@@ -132,7 +137,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>nToReturn</name>
-        <description></description>
+        <description>The optional 'uint32' parameter specifies max number of documents to fetch.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>Expression</expressionMode>
@@ -141,7 +146,7 @@ One output port is defined for use with custom output functions and optionally t
       </parameter>
       <parameter>
         <name>timeout</name>
-        <description></description>
+        <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -151,7 +156,7 @@ One output port is defined for use with custom output functions and optionally t
     </parameters>
     <inputPorts>
       <inputPortSet>
-        <description></description>
+        <description>The Query operator is configurable with a single input port. The input port is non-mutating and its punctuation mode is Oblivious.</description>
         <windowingDescription></windowingDescription>
         <tupleMutationAllowed>false</tupleMutationAllowed>
         <windowingMode>NonWindowed</windowingMode>
@@ -162,7 +167,7 @@ One output port is defined for use with custom output functions and optionally t
     </inputPorts>
     <outputPorts>
       <outputPortSet>
-        <description></description>
+        <description>The Query operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Generating.</description>
         <expressionMode>Expression</expressionMode>
         <autoAssignment>true</autoAssignment>
         <completeAssignment>true</completeAssignment>
