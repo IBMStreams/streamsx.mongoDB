@@ -2,6 +2,10 @@ namespace sample;
 
 use com.ibm.streamsx.mongodb::*;
 
+/**
+* Run beacon optionally specifing query string.
+* Look inside [HelloWorldQuerySample] SPL code to see different uses of QueryDocumentField, QueryDocumentFieldAsJson and QueryDocumentMultipleFields with the description.
+*/
 composite HelloWorldQuerySample {
 	graph
 		stream<tuple<map<rstring,int32> aa> query> beaconOutStream = Beacon()  {

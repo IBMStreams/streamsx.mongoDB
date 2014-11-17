@@ -2,6 +2,10 @@ namespace sample;
 
 use com.ibm.streamsx.mongodb::*;
 
+/**
+* Run two beacons to create different inputs.
+* Look inside [HelloWorldInsertSample] SPL code to see different uses of InsertDocument with the description.
+*/
 composite HelloWorldInsertSample {
 	graph
 		stream<rstring greeting1> B1Stream = Beacon()  {
