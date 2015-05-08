@@ -137,9 +137,9 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	if(conn->ok()) {
 		streams_boost::scoped_ptr<DBClientCursor> cursor((*conn)->query(buildDbCollection(<%=$db%>, <%=$collection%>),
 																		findQueryBO,
-																		<%=$nToReturn%>, NULL,
+																		<%=$nToReturn%>, 0,
 																		&findFieldsBO,
-																		NULL, NULL));
+																		0, 0));
 		docFound = cursor->more();
 		while (cursor->more()) {
 			const BSONObj & queryResultBO = cursor->next();

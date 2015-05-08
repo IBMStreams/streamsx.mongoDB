@@ -161,10 +161,10 @@ namespace mongo {
      */
 
 #define BSONForEach(e, obj)                                     \
-    BSONObjIterator BOOST_PP_CAT(it_,__LINE__)(obj);            \
+    BSONObjIterator STREAMS_BOOST_PP_CAT(it_,__LINE__)(obj);            \
     for ( BSONElement e;                                        \
-            (BOOST_PP_CAT(it_,__LINE__).more() ?                  \
-             (e = BOOST_PP_CAT(it_,__LINE__).next(), true) :  \
+            (STREAMS_BOOST_PP_CAT(it_,__LINE__).more() ?                  \
+             (e = STREAMS_BOOST_PP_CAT(it_,__LINE__).next(), true) :  \
              false) ;                                         \
             /*nothing*/ )
 

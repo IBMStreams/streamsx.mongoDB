@@ -206,9 +206,9 @@ sub main::generate($$) {
    print '																		findQueryBO,', "\n";
    print '																		';
    print $nToReturn;
-   print ', NULL,', "\n";
+   print ', 0,', "\n";
    print '																		&findFieldsBO,', "\n";
-   print '																		NULL, NULL));', "\n";
+   print '																		0, 0));', "\n";
    print '		docFound = cursor->more();', "\n";
    print '		while (cursor->more()) {', "\n";
    print '			const BSONObj & queryResultBO = cursor->next();', "\n";
