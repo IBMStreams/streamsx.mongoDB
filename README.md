@@ -1,7 +1,7 @@
 streamsx.mongoDB
 ================
 This toolkit provides support for [MongoDB](http://www.mongodb.org).
-Web page with SPLDoc for operators and samples: [streamsx.mongodb SPLDoc](http://ibmstreams.github.io/streamsx.mongodb).
+Web page with SPLDoc for operators and samples: [streamsx.mongoDB SPLDoc](http://ibmstreams.github.io/streamsx.mongoDB).
 
 Setup
 -----
