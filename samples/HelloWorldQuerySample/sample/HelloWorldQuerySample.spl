@@ -36,10 +36,11 @@ composite HelloWorldQuerySample {
         		dbHost : "localhost";
         		dbName : "streams";
         		collection : "sample";
+//        		profiling : all;
         	output QueryResult :
         		greeting1 = QueryDocumentField();
         }
-        
+
  		/**
 		 * Get all documents, assign each document as JSON, drop _id field.
 		 */

@@ -23,6 +23,7 @@ composite HelloWorldInsertSample {
         stream<rstring error1, rstring error2, rstring error3, rstring error4, rstring error5, rstring error6> MongoSink = Insert(B1Stream; B2Stream){
         	param
         		dbHost : "localhost";
+//        		profiling : all;
         	output MongoSink :
         		/**
 				 * Store a tuple as is, the resulting document is:
