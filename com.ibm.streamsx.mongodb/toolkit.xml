@@ -46,6 +46,11 @@ Multiple input ports are allowed and their attributes can be used in multiple In
 
 One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
       </description>
+        <customLiterals name="ProfilingLevel">
+          <value name="off"/>
+          <value name="slow"/>
+          <value name="all"/>
+        </customLiterals>
         <outputFunctions name="MongoFS">
           <function name="AsIs" returnType="T">
             <description>a default assignment</description>
@@ -97,6 +102,9 @@ One output port is defined for use with custom output functions and optionally t
         <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
           <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
         </parameter>
+        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
+          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        </parameter>
         <inputPort minNumPorts="0" optional="true" windowPunctInputMode="Oblivious">
           <description>The Insert operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
           <windowPolicy>NonWindowed</windowPolicy>
@@ -122,6 +130,11 @@ Single input port is allowed.
 
 One output port is defined for use with custom output functions, multiple tuples maybe submitted per one query.
       </description>
+        <customLiterals name="ProfilingLevel">
+          <value name="off"/>
+          <value name="slow"/>
+          <value name="all"/>
+        </customLiterals>
         <outputFunctions name="MongoFS">
           <function name="AsIs" returnType="T">
             <description/>
@@ -175,6 +188,9 @@ One output port is defined for use with custom output functions, multiple tuples
         </parameter>
         <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
           <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
+          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
         </parameter>
         <inputPort maxNumPorts="1" minNumPorts="1" optional="false" windowPunctInputMode="Oblivious">
           <description>The Query operator is configurable with a single input port. The input port is non-mutating and its punctuation mode is Oblivious.</description>

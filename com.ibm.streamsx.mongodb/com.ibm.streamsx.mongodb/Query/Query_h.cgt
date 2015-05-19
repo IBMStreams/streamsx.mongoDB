@@ -12,6 +12,14 @@ using namespace mongo;
 
 <%SPL::CodeGen::headerPrologue($model);%>
 
+template<class Void>
+struct MongoInit {
+	static Status status_;
+};
+
+template<class Void>
+Status MongoInit<Void>::status_ = client::initialize();
+
 class MY_OPERATOR: public MY_BASE_OPERATOR {
 
 public:

@@ -29,6 +29,7 @@ sub main::generate($$) {
    
    	my $nToReturn = ($_ = $model->getParameterByName('nToReturn')) ? $_->getValueAt(0)->getCppExpression() : 0;
    	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
+   	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
    
    	my $inputPort = $model->getInputPortAt(0);
    	my $outputPort = $model->getOutputPortAt(0);
@@ -77,6 +78,16 @@ sub main::generate($$) {
    print "\n";
    print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")),', "\n";
    print '							 findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {', "\n";
+   print "\n";
+   print '	if(!MongoInit<void>::status_.isOK()) {', "\n";
+   print '		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");', "\n";
+   print '	}', "\n";
+   print '}', "\n";
+   print "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::~MY_OPERATOR() {}', "\n";
+   print "\n";
+   print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::allPortsReady() {', "\n";
+   print '	', "\n";
    print '	try {', "\n";
    print '		ScopedDbConnection conn(buildConnUrl(';
    print $dbHost;
@@ -96,10 +107,9 @@ sub main::generate($$) {
    print '	}', "\n";
    print '}', "\n";
    print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::~MY_OPERATOR() {}', "\n";
-   print "\n";
-   print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::allPortsReady() {}', "\n";
-   print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::prepareToShutdown() {}', "\n";
+   print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::prepareToShutdown() {', "\n";
+   print '	client::shutdown();', "\n";
+   print '}', "\n";
    print "\n";
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {', "\n";
    print '	';
@@ -198,6 +208,23 @@ sub main::generate($$) {
    print "\n";
    print '	dcpsMetric_.setValue(conn->getNumConnections());', "\n";
    print '	if(conn->ok()) {', "\n";
+   print '		', "\n";
+   print '		';
+   if ($profiling eq 'slow') {
+   print "\n";
+   print '			conn->DBClientWithCommands::setDbProfilingLevel(';
+   print $db;
+   print ',  DBClientWithCommands::ProfileSlow);', "\n";
+   print '		';
+   } elsif ($profiling eq 'all') {
+   print "\n";
+   print '			conn->DBClientWithCommands::setDbProfilingLevel(';
+   print $db;
+   print ',  DBClientWithCommands::ProfileAll);', "\n";
+   print '		';
+   }
+   print "\n";
+   print '		', "\n";
    print '		streams_boost::scoped_ptr<DBClientCursor> cursor((*conn)->query(buildDbCollection(';
    print $db;
    print ', ';
@@ -255,6 +282,7 @@ sub main::generate($$) {
    print '	}', "\n";
    print '}', "\n";
    print "\n";
+   print '// static thread_specific_ptr initialization', "\n";
    print 'streams_boost::thread_specific_ptr<MY_OPERATOR_SCOPE::MY_OPERATOR::OPort0Type> MY_OPERATOR_SCOPE::MY_OPERATOR::otuplePtr_;', "\n";
    print "\n";
    print 'MY_OPERATOR_SCOPE::MY_OPERATOR::OPort0Type * MY_OPERATOR_SCOPE::MY_OPERATOR::getOutputTuple() {', "\n";

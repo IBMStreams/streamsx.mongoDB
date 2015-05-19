@@ -22,6 +22,14 @@ One output port is defined for use with custom output functions, multiple tuples
           <kind>Gauge</kind>
         </metric>
       </metrics>
+      <customLiterals>
+        <enumeration>
+          <name>ProfilingLevel</name>
+          <value>off</value>
+          <value>slow</value>
+          <value>all</value>
+        </enumeration>
+      </customLiterals>
       <customOutputFunctions>
         <customOutputFunction>
           <name>MongoFS</name>
@@ -151,6 +159,15 @@ One output port is defined for use with custom output functions, multiple tuples
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
         <type>float64</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>profiling</name>
+        <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        <optional>true</optional>
+        <rewriteAllowed>false</rewriteAllowed>
+        <expressionMode>CustomLiteral</expressionMode>
+        <type>ProfilingLevel</type>
         <cardinality>1</cardinality>
       </parameter>
     </parameters>

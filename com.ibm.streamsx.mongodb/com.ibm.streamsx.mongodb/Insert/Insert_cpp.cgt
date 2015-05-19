@@ -10,6 +10,7 @@
 	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
 	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
 	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
+	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
 %>
 
 string MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {
@@ -27,12 +28,23 @@ string MY_OPERATOR::buildDbCollection(const string& db, const string& collection
 }
 
 MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")) {
+
+	if(!MongoInit<void>::status_.isOK()) {
+		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");
+	}
+}
+
+MY_OPERATOR::~MY_OPERATOR() {}
+
+void MY_OPERATOR::allPortsReady() {
+
 	try {
 		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
 		if(!conn.ok()) {
 			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");
 		}
 		dcpsMetric_.setValueNoLock(conn.getNumConnections());
+		
 		conn.done();
 	}
 	catch( const DBException &e ) {
@@ -40,10 +52,9 @@ MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetr
 	}
 }
 
-MY_OPERATOR::~MY_OPERATOR() {}
-
-void MY_OPERATOR::allPortsReady() {}
-void MY_OPERATOR::prepareToShutdown() {}
+void MY_OPERATOR::prepareToShutdown() {
+	client::shutdown();
+}
 
 void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	<%
@@ -115,6 +126,13 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 				dcpsMetric_.setValue(conn.getNumConnections());
 				
 				if(conn.ok()) {
+					
+					<%if ($profiling eq 'slow') {%>
+						conn->DBClientWithCommands::setDbProfilingLevel(<%=$db%>,  DBClientWithCommands::ProfileSlow);
+					<%} elsif ($profiling eq 'all') {%>
+						conn->DBClientWithCommands::setDbProfilingLevel(<%=$db%>,  DBClientWithCommands::ProfileAll);
+					<%}%>
+					
 					conn->insert(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
 					errorMsg = conn->DBClientWithCommands::getLastError();
 					conn.done();

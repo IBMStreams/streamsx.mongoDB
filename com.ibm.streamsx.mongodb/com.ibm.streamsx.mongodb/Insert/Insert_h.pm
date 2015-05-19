@@ -24,6 +24,14 @@ sub main::generate($$) {
    SPL::CodeGen::headerPrologue($model);
    print "\n";
    print "\n";
+   print 'template<class Void>', "\n";
+   print 'struct MongoInit {', "\n";
+   print '	static Status status_;', "\n";
+   print '};', "\n";
+   print "\n";
+   print 'template<class Void>', "\n";
+   print 'Status MongoInit<Void>::status_ = client::initialize();', "\n";
+   print "\n";
    print 'class MY_OPERATOR: public MY_BASE_OPERATOR {', "\n";
    print "\n";
    print 'public:', "\n";
