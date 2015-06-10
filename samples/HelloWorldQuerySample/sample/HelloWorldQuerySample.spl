@@ -23,8 +23,6 @@ composite HelloWorldQuerySample {
 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87f"), "greeting4" : [  "Hello",  "world" ] }
 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c880"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c881"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
-		 * { "_id" : ObjectId("53e243e2e66ebea0c454c882"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
-		 * { "_id" : ObjectId("53e243e2e66ebea0c454c883"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
 		 */
 
  		/**
@@ -118,8 +116,6 @@ composite HelloWorldQuerySample {
 		 * {allDocs={"greeting1":"Hello world"}}
 		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
 		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
-		 * {allDocs={"greeting6_1":"Hello","greeting6_2":"world"}}
-		 * {allDocs={"greeting6_1":"Hello","greeting6_2":"world"}}
 		 */
         stream<map<rstring,rstring> allDocs> QueryResult7 as QueryResult = Query(beaconOutStream) {
         	param
@@ -129,7 +125,7 @@ composite HelloWorldQuerySample {
         	output QueryResult :
         		allDocs = QueryDocumentMultipleFields();
         }
-        
+
  		/**
 		 * Get all documents where 'greeting2.greeting2' rstring field exists,
 		 * assign the value to 'field' (aka 'field' is alias name to 'greeting2.greeting2'), the resulting tuple is:
