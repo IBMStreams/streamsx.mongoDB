@@ -53,14 +53,7 @@ composite HelloWorldInsertSample {
 				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
 				 */
-        		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"}),
-
-        		/**
-				 * Specify different MongoDB server host.
-				 * Store a constant tuple (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
-				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
-				 */
-        		error6 = InsertDocument("localhost", 27017u, "streams", "sample", {greeting6_1 = "Hello", greeting6_2 = "world"}); 
+        		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"});
         }
         
 		/**
