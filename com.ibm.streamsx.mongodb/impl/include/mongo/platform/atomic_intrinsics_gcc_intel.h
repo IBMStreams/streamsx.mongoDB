@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include <boost/utility.hpp>
+#include <streams_boost/utility.hpp>
 
 namespace mongo {
 

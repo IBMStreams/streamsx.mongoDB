@@ -17,20 +17,16 @@
 
 #pragma once
 
-/* Things in the mongoutils namespace
-   (1) are not database specific, rather, true utilities
-   (2) are cross platform
-   (3) may require boost headers, but not libs
-   (4) are clean and easy to use in any c++ project without pulling in lots of other stuff
-
-   Note: within this module, we use int for all offsets -- there are no unsigned offsets
-   and no size_t's.  If you need 3 gigabyte long strings, don't use this module.
-*/
+/**
+ * String utilities.
+ *
+ * TODO: De-inline.
+ * TODO: Retire the mongoutils namespace, and move str under the mongo namespace.
+ */
 
 #include <string>
 #include <sstream>
 
-// this violates the README rules for mongoutils:
 #include "mongo/bson/util/builder.h"
 
 namespace mongoutils {
@@ -82,6 +78,12 @@ namespace mongoutils {
         inline bool endsWith(const char *s, char p) {
             size_t len = strlen(s);
             return len && s[len-1] == p;
+        }
+        inline bool endsWith(const char *p, const char *suffix) {
+            size_t a = strlen(p);
+            size_t b = strlen(suffix);
+            if ( b > a ) return false;
+            return strcmp(p + a - b, suffix) == 0;
         }
 
         inline bool equals( const char * a , const char * b ) { return strcmp( a , b ) == 0; }
@@ -205,15 +207,29 @@ namespace mongoutils {
 
         /** remove trailing chars in place */
         inline void stripTrailing(std::string& s, const char *chars) {
-            std::string::iterator i = s.end();
-            while( s.begin() != i ) {
-                i--;
-                if( contains(chars, *i) ) {
-                    s.erase(i);
+            std::string::iterator to = s.begin();
+            for ( std::string::iterator i = s.begin(); i != s.end(); i++ ) {
+                // During each iteration if i finds a non-"chars" character it writes it to the
+                // position of t. So the part of the string left from the "to" iterator is already
+                // "cleared" string.
+                if ( !contains(chars, *i) ) {
+                    if ( i != to )
+                        s.replace(to, to + 1, 1, *i);
+                    to++;
                 }
             }
+            s.erase(to, s.end());
         }
 
-    }
+    }  // namespace str
 
-}
+}  // namespace mongoutils
+
+namespace mongo {
+    using namespace mongoutils;
+
+#if defined(_WIN32)
+    inline int strcasecmp(const char* s1, const char* s2) {return _stricmp(s1, s2);}
+#endif
+
+}  // namespace mongo

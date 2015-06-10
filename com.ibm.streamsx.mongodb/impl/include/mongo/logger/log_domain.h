@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <boost/scoped_ptr.hpp>
+#include <streams_boost/scoped_ptr.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -30,7 +30,7 @@ namespace logger {
     /**
      * Logging domain for events of type E.
      *
-     * A logging domain consists of a set of Appenders and a minimum severity.
+     * A logging domain consists of a set of Appenders.
      *
      * TODO: The severity doesn't seem to apply for auditing, maybe it only belongs on the
      * MessageLogManager?  We don't really have multiple tunable logging domains, right now.  Other
@@ -47,7 +47,7 @@ namespace logger {
      * messages.
      */
     template <typename E>
-    class LogDomain {
+    class MONGO_CLIENT_API LogDomain {
         MONGO_DISALLOW_COPYING(LogDomain);
     public:
         typedef E Event;
@@ -82,22 +82,6 @@ namespace logger {
          * *If abortOnFailure is not set, the error is returned and no further appenders are called.
          */
         Status append(const Event& event);
-
-        /**
-         * Predicate that answers the question, "Should I, the caller, append to you, the log
-         * domain, messages of the given severity?"  True means yes.
-         */
-        bool shouldLog(LogSeverity severity) { return severity >= _minimumLoggedSeverity; }
-
-        /**
-         * Gets the minimum severity of messages that should be sent to this LogDomain.
-         */
-        LogSeverity getMinimumLogSeverity() { return _minimumLoggedSeverity; }
-
-        /**
-         * Sets the minimum severity of messages that should be sent to this LogDomain.
-         */
-        void setMinimumLoggedSeverity(LogSeverity severity) { _minimumLoggedSeverity = severity; }
 
         /**
          * Gets the state of the abortOnFailure flag.
@@ -135,7 +119,6 @@ namespace logger {
     private:
         typedef std::vector<EventAppender*> AppenderVector;
 
-        LogSeverity _minimumLoggedSeverity;
         AppenderVector _appenders;
         bool _abortOnFailure;
     };

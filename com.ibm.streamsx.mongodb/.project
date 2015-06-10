@@ -26,4 +26,10 @@
 		<nature>org.eclipse.xtext.ui.shared.xtextNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<variableList>
+		<variable>
+			<name>STREAMS_BOOST</name>
+			<value>file:/home/il026280/IS/4.0.0.0/ext/include/streams_boost</value>
+		</variable>
+	</variableList>
 </projectDescription>

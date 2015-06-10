@@ -21,17 +21,19 @@
 
 #ifdef MONGO_MACROS_PUSHED
 
-// util/allocator.h
-#ifdef MONGO_MALLOC
-#undef malloc
-#pragma pop_macro("malloc")
-#undef realloc
-#pragma pop_macro("realloc")
+#if defined(_WIN32)
+#pragma pop_macro("min")
+#pragma pop_macro("max")
+#pragma pop_macro("NOMINMAX")
 #endif
 
+// bson/inline_decls.h
+#undef NOINLINE_DECL
+#pragma pop_macro("NOINLINE_DECL")
+#undef PACKED_DECL
+#pragma pop_macro("PACKED_DECL")
+
 // util/assert_util.h
-#undef dassert
-#pragma pop_macro("dassert")
 #undef wassert
 #pragma pop_macro("wassert")
 #undef massert
@@ -42,32 +44,10 @@
 #pragma pop_macro("verify")
 #undef invariant
 #pragma pop_macro("invariant")
+#undef invariantOK
+#pragma pop_macro("invariantOK")
 #undef DESTRUCTOR_GUARD
 #pragma pop_macro("DESTRUCTOR_GUARD")
-
-// util/goodies.h
-#undef PRINT
-#pragma pop_macro("PRINT")
-#undef PRINTFL
-#pragma pop_macro("PRINTFL")
-
-// util/debug_util.h
-#undef DEV
-#pragma pop_macro("DEV")
-#undef DEBUGGING
-#pragma pop_macro("DEBUGGING")
-#undef SOMETIMES
-#pragma pop_macro("SOMETIMES")
-#undef OCCASIONALLY
-#pragma pop_macro("OCCASIONALLY")
-#undef RARELY
-#pragma pop_macro("RARELY")
-#undef ONCE
-#pragma pop_macro("ONCE")
-
-// util/log.h
-#undef LOG
-#pragma pop_macro("LOG")
 
 #undef MONGO_MACROS_PUSHED
 #endif

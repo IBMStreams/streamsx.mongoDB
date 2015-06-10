@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <boost/utility.hpp>
+#include <streams_boost/utility.hpp>
 
 #include "mongo/platform/windows_basic.h"
 

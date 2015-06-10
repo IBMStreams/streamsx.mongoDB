@@ -20,15 +20,23 @@
 
 #pragma once
 
-#include "mongo/pch.h"
+#include <streams_boost/thread/locks.hpp>
+#include <streams_boost/thread/mutex.hpp>
 
-#include <boost/function.hpp>
+#include "mongo/config.h"
 
 #include "mongo/base/string_data.h"
+#include "mongo/client/bulk_operation_builder.h"
+#include "mongo/client/exceptions.h"
 #include "mongo/client/export_macros.h"
+#include "mongo/client/index_spec.h"
+#include "mongo/client/write_concern.h"
+#include "mongo/client/write_options.h"
 #include "mongo/db/jsobj.h"
 #include "mongo/logger/log_severity.h"
 #include "mongo/platform/atomic_word.h"
+#include "mongo/stdx/functional.h"
+#include "mongo/util/mongoutils/str.h"
 #include "mongo/util/net/message.h"
 #include "mongo/util/net/message_port.h"
 
@@ -74,7 +82,7 @@ namespace mongo {
             will fully read all data queried.  Faster when you are pulling a lot of data and know you want to
             pull it all down.  Note: it is not allowed to not read all the data unless you close the connection.
 
-            Use the query( boost::function<void(const BSONObj&)> f, ... ) version of the connection's query()
+            Use the query( stdx::function<void(const BSONObj&)> f, ... ) version of the connection's query()
             method, and it will take care of all the details for you.
         */
         QueryOption_Exhaust = 1 << 6,
@@ -85,37 +93,13 @@ namespace mongo {
          */
         QueryOption_PartialResults = 1 << 7 ,
 
-        QueryOption_AllSupported = QueryOption_CursorTailable | QueryOption_SlaveOk | QueryOption_OplogReplay | QueryOption_NoCursorTimeout | QueryOption_AwaitData | QueryOption_Exhaust | QueryOption_PartialResults
-
-    };
-
-    enum MONGO_CLIENT_API UpdateOptions {
-        /** Upsert - that is, insert the item if no matching item is found. */
-        UpdateOption_Upsert = 1 << 0,
-
-        /** Update multiple documents (if multiple documents match query expression).
-           (Default is update a single document and stop.) */
-        UpdateOption_Multi = 1 << 1,
-
-        /** flag from mongo saying this update went everywhere */
-        UpdateOption_Broadcast = 1 << 2
-    };
-
-    enum MONGO_CLIENT_API RemoveOptions {
-        /** only delete one option */
-        RemoveOption_JustOne = 1 << 0,
-
-        /** flag from mongo saying this update went everywhere */
-        RemoveOption_Broadcast = 1 << 1
-    };
-
-
-    /**
-     * need to put in DbMesssage::ReservedOptions as well
-     */
-    enum MONGO_CLIENT_API InsertOptions {
-        /** With muli-insert keep processing inserts if one fails */
-        InsertOption_ContinueOnError = 1 << 0
+        QueryOption_AllSupported = QueryOption_CursorTailable |
+            QueryOption_SlaveOk |
+            QueryOption_OplogReplay |
+            QueryOption_NoCursorTimeout |
+            QueryOption_AwaitData |
+            QueryOption_Exhaust |
+            QueryOption_PartialResults,
     };
 
     /**
@@ -173,25 +157,37 @@ namespace mongo {
     class MONGO_CLIENT_API DBClientConnection;
 
     /**
-     * ConnectionString handles parsing different ways to connect to mongo and determining method
-     * samples:
-     *    server
-     *    server:port
-     *    foo/server:port,server:port   SET
-     *    server,server,server          SYNC
-     *                                    Warning - you usually don't want "SYNC", it's used
-     *                                    for some special things such as sharding config servers.
-     *                                    See syncclusterconnection.h for more info.
+     * ConnectionString can parse MongoDB URIs with the following format:
      *
-     * tyipcal use
-     * string errmsg,
-     * ConnectionString cs = ConnectionString::parse( url , errmsg );
-     * if ( ! cs.isValid() ) throw "bad: " + errmsg;
-     * DBClientBase * conn = cs.connect( errmsg );
+     *    mongodb://[usr:pwd@]host1[:port1]...[,hostN[:portN]]][/[db][?options]]
+     *
+     * For a complete list of URI string options, see
+     * https://wiki.mongodb.com/display/DH/Connection+String+Format
+     *
+     * Examples:
+     *
+     *    A replica set with three members (one running on default port 27017):
+     *      string uri = mongodb://localhost,localhost:27018,localhost:27019
+     *
+     *    Authenticated connection to db 'bedrock' with user 'barney' and pwd 'rubble':
+     *      string url = mongodb://barney:rubble@localhost/bedrock
+     *
+     *    Use parse() to parse the url, then validate and connect:
+     *      string errmsg;
+     *      ConnectionString cs = ConnectionString::parse( url, errmsg );
+     *      if ( ! cs.isValid() ) throw "bad connection string: " + errmsg;
+     *      DBClientBase * conn = cs.connect( errmsg );
+     *
+     * NOTE:
+     *
+     *    The 'rs_name/host1:port,host2:port' format has been deprecated, and parse()
+     *    will no longer recognize this as a valid URI. To use the deprecated format,
+     *    use parseDeprecated() instead.
      */
     class MONGO_CLIENT_API ConnectionString {
     public:
-        enum ConnectionType { INVALID , MASTER , PAIR , SET , SYNC, CUSTOM };
+
+        enum ConnectionType { INVALID , MASTER , PAIR , SET , CUSTOM };
 
         ConnectionString() {
             _type = INVALID;
@@ -205,7 +201,7 @@ namespace mongo {
             _finishInit();
         }
 
-        ConnectionString( ConnectionType type , const string& s , const string& setName = "" ) {
+        ConnectionString( ConnectionType type , const std::string& s , const std::string& setName = "" ) {
             _type = type;
             _setName = setName;
             _fillServers( s );
@@ -228,7 +224,7 @@ namespace mongo {
             _finishInit();
         }
 
-        ConnectionString( const string& s , ConnectionType favoredMultipleType ) {
+        ConnectionString( const std::string& s , ConnectionType favoredMultipleType ) {
             _type = INVALID;
 
             _fillServers( s );
@@ -240,22 +236,30 @@ namespace mongo {
             }
             else {
                 _type = favoredMultipleType;
-                verify( _type == SET || _type == SYNC );
+                verify( _type == SET );
             }
             _finishInit();
         }
 
         bool isValid() const { return _type != INVALID; }
 
-        string toString() const { return _string; }
+        std::string toString() const { return _string; }
 
-        DBClientBase* connect( string& errmsg, double socketTimeout = 0 ) const;
+        DBClientBase* connect( std::string& errmsg, double socketTimeout = 0 ) const;
 
-        string getSetName() const { return _setName; }
+        std::string getSetName() const { return _setName; }
 
-        vector<HostAndPort> getServers() const { return _servers; }
+        const std::vector<HostAndPort>& getServers() const { return _servers; }
 
         ConnectionType type() const { return _type; }
+
+        const std::string& getUser() const { return _user; }
+
+        const std::string& getPassword() const { return _password; }
+
+        const BSONObj& getOptions() const { return _options; }
+
+        const std::string& getDatabase() const { return _database; }
 
         /**
          * This returns true if this and other point to the same logical entity.
@@ -265,9 +269,11 @@ namespace mongo {
          */
         bool sameLogicalEndpoint( const ConnectionString& other ) const;
 
-        static ConnectionString parse( const string& url , string& errmsg );
+        static ConnectionString MONGO_CLIENT_FUNC parse( const std::string& address , std::string& errmsg );
 
-        static string typeToString( ConnectionType type );
+        static ConnectionString MONGO_CLIENT_FUNC parseDeprecated( const std::string& address , std::string& errmsg );
+
+        static std::string MONGO_CLIENT_FUNC typeToString( ConnectionType type );
 
         //
         // Allow overriding the default connection behavior
@@ -281,18 +287,23 @@ namespace mongo {
 
             // Returns an alternative connection object for a string
             virtual DBClientBase* connect( const ConnectionString& c,
-                                             string& errmsg,
+                                             std::string& errmsg,
                                              double socketTimeout ) = 0;
         };
 
         static void setConnectionHook( ConnectionHook* hook ){
-            scoped_lock lk( _connectHookMutex );
+            boost::lock_guard<streams_boost::mutex> lk( _connectHookMutex );
             _connectHook = hook;
         }
 
         static ConnectionHook* getConnectionHook() {
-            scoped_lock lk( _connectHookMutex );
+            boost::lock_guard<streams_boost::mutex> lk( _connectHookMutex );
             return _connectHook;
+        }
+
+        // Allows ConnectionStrings to be stored more easily in sets/maps
+        bool operator<(const ConnectionString& other) const {
+            return _string < other._string;
         }
 
         //
@@ -303,43 +314,75 @@ namespace mongo {
         static ConnectionString mock( const HostAndPort& server ) {
             ConnectionString connStr;
             connStr._servers.push_back( server );
-            connStr._string = server.toString( true );
+            connStr._string = server.toString();
             return connStr;
         }
 
     private:
+        ConnectionString( ConnectionType type,
+                          const std::string& user,
+                          const std::string& password,
+                          const std::string& servers,
+                          const std::string& database,
+                          const std::string& setName,
+                          const BSONObj& options )
+            : _type( type )
+            , _servers( )
+            , _setName( setName )
+            , _user( user )
+            , _password( password )
+            , _database( database )
+            , _options( options ) {
 
-        void _fillServers( string s );
+            _fillServers( servers, false );
+            switch ( _type ) {
+            case MASTER:
+                verify( _servers.size() == 1 );
+                break;
+            case SET:
+                verify( _setName.size() );
+                verify( _servers.size() >= 1 ); // 1 is ok since we can derive
+                break;
+            case PAIR:
+                verify( _servers.size() == 2 );
+                break;
+            default:
+                verify( _servers.size() > 0 );
+            }
+
+            _finishInit();
+        }
+
+        static ConnectionString _parseURL( const std::string& url, std::string& errmsg );
+
+        void _fillServers( std::string s, bool legacy = true );
         void _finishInit();
 
-        ConnectionType _type;
-        vector<HostAndPort> _servers;
-        string _string;
-        string _setName;
+        BSONObj _makeAuthObjFromOptions(int maxWireVersion) const;
 
-        static mutex _connectHookMutex;
+        ConnectionType _type;
+        std::vector<HostAndPort> _servers;
+        std::string _string;
+        std::string _setName;
+
+        std::string _user;
+        std::string _password;
+
+        std::string _database;
+        BSONObj _options;
+
+        static boost::mutex _connectHookMutex;
         static ConnectionHook* _connectHook;
     };
 
-    /**
-     * controls how much a clients cares about writes
-     * default is NORMAL
-     */
-    enum MONGO_CLIENT_API WriteConcern {
-        W_NONE = 0 , // TODO: not every connection type fully supports this
-        W_NORMAL = 1
-        // TODO SAFE = 2
-    };
-
     class BSONObj;
-    class ScopedDbConnection;
     class DBClientCursor;
     class DBClientCursorBatchIterator;
 
-    /** Represents a Mongo query expression.  Typically one uses the QUERY(...) macro to construct a Query object.
+    /** Represents a Mongo query expression.  Typically one uses the MONGO_QUERY(...) macro to construct a Query object.
         Examples:
-           QUERY( "age" << 33 << "school" << "UCLA" ).sort("name")
-           QUERY( "age" << GT << 30 << LT << 50 )
+           MONGO_QUERY( "age" << 33 << "school" << "UCLA" ).sort("name")
+           MONGO_QUERY( "age" << GT << 30 << LT << 50 )
     */
     class MONGO_CLIENT_API Query {
     public:
@@ -350,7 +393,7 @@ namespace mongo {
         BSONObj obj;
         Query() : obj(BSONObj()) { }
         Query(const BSONObj& b) : obj(b) { }
-        Query(const string &json);
+        Query(const std::string &json);
         Query(const char * json);
 
         /** Add a sort (ORDER BY) criteria to the query expression.
@@ -368,7 +411,7 @@ namespace mongo {
             @param asc = 1 for ascending order
             asc = -1 for descending order
         */
-        Query& sort(const string &field, int asc = 1) { sort( BSON( field << asc ) ); return *this; }
+        Query& sort(const std::string &field, int asc = 1) { sort( BSON( field << asc ) ); return *this; }
 
         /** Provide a hint to the query.
             @param keyPattern Key pattern for the index to use.
@@ -376,7 +419,13 @@ namespace mongo {
               hint("{ts:1}")
         */
         Query& hint(BSONObj keyPattern);
-        Query& hint(const string &jsonKeyPatt);
+        Query& hint(const std::string& indexName);
+
+        /**
+         * Specifies a cumulative time limit in milliseconds for processing an operation.
+         * MongoDB will interrupt the operation at the earliest following interrupt point.
+         */
+        Query& maxTimeMs(int millis);
 
         /** Provide min and/or max index limits for the query.
             min <= x < max
@@ -418,8 +467,8 @@ namespace mongo {
               conn.findOne("test.coll", Query("{a:3}").where("this.b == 2 || this.c == 3"));
               Query badBalance = Query().where("this.debits - this.credits < 0");
         */
-        Query& where(const string &jscode, BSONObj scope);
-        Query& where(const string &jscode) { return where(jscode, BSONObj()); }
+        Query& where(const std::string &jscode, BSONObj scope);
+        Query& where(const std::string &jscode) { return where(jscode, BSONObj()); }
 
         /**
          * Sets the read preference for this query.
@@ -433,20 +482,26 @@ namespace mongo {
          * @return true if this query has an orderby, hint, or some other field
          */
         bool isComplex( bool * hasDollar = 0 ) const;
-        static bool isComplex(const BSONObj& obj, bool* hasDollar = 0);
+        BSONObj getModifiers() const;
+        static bool MONGO_CLIENT_FUNC isComplex(const BSONObj& obj, bool* hasDollar = 0);
 
         BSONObj getFilter() const;
         BSONObj getSort() const;
-        BSONObj getHint() const;
+        BSONElement getHint() const;
+        BSONObj getReadPref() const;
+        int getMaxTimeMs() const;
         bool isExplain() const;
 
         /**
          * @return true if the query object contains a read preference specification object.
          */
-        static bool hasReadPreference(const BSONObj& queryObj);
+        static bool MONGO_CLIENT_FUNC hasReadPreference(const BSONObj& queryObj);
+        bool hasReadPreference() const;
+        bool hasHint() const;
+        bool hasMaxTimeMs() const;
 
-        string toString() const;
-        operator string() const { return toString(); }
+        std::string toString() const;
+        operator std::string() const { return toString(); }
     private:
         void makeComplex();
         template< class T >
@@ -465,7 +520,7 @@ namespace mongo {
      */
     class MONGO_CLIENT_API QuerySpec {
 
-        string _ns;
+        std::string _ns;
         int _ntoskip;
         int _ntoreturn;
         int _options;
@@ -475,7 +530,7 @@ namespace mongo {
 
     public:
 
-        QuerySpec( const string& ns,
+        QuerySpec( const std::string& ns,
                    const BSONObj& query, const BSONObj& fields,
                    int ntoskip, int ntoreturn, int options )
             : _ns( ns ), _ntoskip( ntoskip ), _ntoreturn( ntoreturn ), _options( options ),
@@ -489,7 +544,7 @@ namespace mongo {
         bool isExplain() const { return _queryObj.isExplain(); }
         BSONObj filter() const { return _queryObj.getFilter(); }
 
-        BSONObj hint() const { return _queryObj.getHint(); }
+        BSONElement hint() const { return _queryObj.getHint(); }
         BSONObj sort() const { return _queryObj.getSort(); }
         BSONObj query() const { return _query; }
         BSONObj fields() const { return _fields; }
@@ -498,14 +553,14 @@ namespace mongo {
         // don't love this, but needed downstrem
         const BSONObj* fieldsPtr() const { return &_fields; }
 
-        string ns() const { return _ns; }
+        std::string ns() const { return _ns; }
         int ntoskip() const { return _ntoskip; }
         int ntoreturn() const { return _ntoreturn; }
         int options() const { return _options; }
 
         void setFields( BSONObj& o ) { _fields = o.getOwned(); }
 
-        string toString() const {
+        std::string toString() const {
             return str::stream() << "QSpec " <<
                 BSON( "ns" << _ns << "n2skip" << _ntoskip << "n2return" << _ntoreturn << "options" << _options
                       << "query" << _query << "fields" << _fields );
@@ -514,17 +569,17 @@ namespace mongo {
     };
 
 
-    /** Typically one uses the QUERY(...) macro to construct a Query object.
-        Example: QUERY( "age" << 33 << "school" << "UCLA" )
+    /** Typically one uses the MONGO_QUERY(...) macro to construct a Query object.
+        Example: MONGO_QUERY( "age" << 33 << "school" << "UCLA" )
     */
-#define QUERY(x) ::mongo::Query( BSON(x) )
+#define MONGO_QUERY(x) ::mongo::Query( BSON(x) )
 
     // Useful utilities for namespaces
     /** @return the database name portion of an ns string */
-    MONGO_CLIENT_API string nsGetDB( const string &ns );
+    MONGO_CLIENT_API std::string MONGO_CLIENT_FUNC nsGetDB( const std::string &ns );
 
     /** @return the collection name portion of an ns string */
-    MONGO_CLIENT_API string nsGetCollection( const string &ns );
+    MONGO_CLIENT_API std::string MONGO_CLIENT_FUNC nsGetCollection( const std::string &ns );
 
     /**
        interface that handles communication with the db
@@ -533,13 +588,13 @@ namespace mongo {
     public:
         virtual ~DBConnector() {}
         /** actualServer is set to the actual server where they call went if there was a choice (SlaveOk) */
-        virtual bool call( Message &toSend, Message &response, bool assertOk=true , string * actualServer = 0 ) = 0;
-        virtual void say( Message &toSend, bool isRetry = false , string * actualServer = 0 ) = 0;
+        virtual bool call( Message &toSend, Message &response, bool assertOk=true , std::string * actualServer = 0 ) = 0;
+        virtual void say( Message &toSend, bool isRetry = false , std::string * actualServer = 0 ) = 0;
         virtual void sayPiggyBack( Message &toSend ) = 0;
         /* used by QueryOption_Exhaust.  To use that your subclass must implement this. */
         virtual bool recv( Message& m ) { verify(false); return false; }
         // In general, for lazy queries, we'll need to say, recv, then checkResponse
-        virtual void checkResponse( const char* data, int nReturned, bool* retry = NULL, string* targetHost = NULL ) {
+        virtual void checkResponse( const char* data, int nReturned, bool* retry = NULL, std::string* targetHost = NULL ) {
             if( retry ) *retry = false; if( targetHost ) *targetHost = "";
         }
         virtual bool lazySupported() const = 0;
@@ -550,23 +605,23 @@ namespace mongo {
      */
     class MONGO_CLIENT_API DBClientInterface : boost::noncopyable {
     public:
-        virtual auto_ptr<DBClientCursor> query(const string &ns, Query query, int nToReturn = 0, int nToSkip = 0,
-                                               const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 ) = 0;
+        virtual std::auto_ptr<DBClientCursor> query(const std::string &ns, Query query, int nToReturn = 0, int nToSkip = 0,
+                                                    const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 ) = 0;
 
-        virtual void insert( const string &ns, BSONObj obj , int flags=0) = 0;
+        virtual void insert( const std::string &ns, BSONObj obj , int flags=0, const WriteConcern* wc=NULL ) = 0;
 
-        virtual void insert( const string &ns, const vector< BSONObj >& v , int flags=0) = 0;
+        virtual void insert( const std::string &ns, const std::vector< BSONObj >& v , int flags=0, const WriteConcern* wc=NULL ) = 0;
 
-        virtual void remove( const string &ns , Query query, bool justOne = 0 ) = 0;
+        virtual void remove( const std::string &ns, Query query, bool justOne = false, const WriteConcern* wc=NULL ) = 0;
 
-        virtual void remove( const string &ns , Query query, int flags ) = 0;
+        virtual void remove( const std::string &ns, Query query, int flags, const WriteConcern* wc=NULL ) = 0;
 
-        virtual void update( const string &ns,
+        virtual void update( const std::string &ns,
                              Query query,
                              BSONObj obj,
-                             bool upsert = false, bool multi = false ) = 0;
+                             bool upsert = false, bool multi = false, const WriteConcern* wc=NULL ) = 0;
 
-        virtual void update( const string &ns, Query query, BSONObj obj, int flags ) = 0;
+        virtual void update( const std::string &ns, Query query, BSONObj obj, int flags, const WriteConcern* wc=NULL ) = 0;
 
         virtual ~DBClientInterface() { }
 
@@ -574,17 +629,30 @@ namespace mongo {
            @return a single object that matches the query.  if none do, then the object is empty
            @throws AssertionException
         */
-        virtual BSONObj findOne(const string &ns, const Query& query, const BSONObj *fieldsToReturn = 0, int queryOptions = 0);
+        virtual BSONObj findOne(const std::string &ns, const Query& query, const BSONObj *fieldsToReturn = 0, int queryOptions = 0);
 
         /** query N objects from the database into an array.  makes sense mostly when you want a small number of results.  if a huge number, use
             query() and iterate the cursor.
         */
-        void findN(vector<BSONObj>& out, const string&ns, Query query, int nToReturn, int nToSkip = 0, const BSONObj *fieldsToReturn = 0, int queryOptions = 0);
+        void findN(std::vector<BSONObj>& out, const std::string&ns, Query query, int nToReturn, int nToSkip = 0, const BSONObj *fieldsToReturn = 0, int queryOptions = 0, int batchSize = 0);
 
-        virtual string getServerAddress() const = 0;
+        /**
+         * Saves a document to a collection.
+         *
+         * If 'toSave' already has an '_id' then an update(upsert) operation is performed and
+         * any existing document with that '_id' is overwritten. Otherwise, an insert operation
+         * is performed.
+         *
+         * @param ns The namespace to save the document into.
+         * @param toSave The document to save.
+         * @param wc The write concern for this operation.
+         */
+        void save(const StringData& ns, const BSONObj& toSave, const WriteConcern* wc = NULL);
+
+        virtual std::string getServerAddress() const = 0;
 
         /** don't use this - called automatically by DBClientCursor for you */
-        virtual auto_ptr<DBClientCursor> getMore( const string &ns, long long cursorId, int nToReturn = 0, int options = 0 ) = 0;
+        virtual std::auto_ptr<DBClientCursor> getMore( const std::string &ns, long long cursorId, int nToReturn = 0, int options = 0 ) = 0;
     };
 
     /**
@@ -592,12 +660,13 @@ namespace mongo {
        Basically just invocations of connection.$cmd.findOne({...});
     */
     class MONGO_CLIENT_API DBClientWithCommands : public DBClientInterface {
-        set<string> _seenIndexes;
     public:
         /** controls how chatty the client is about network errors & such.  See log.h */
         logger::LogSeverity _logLevel;
 
         DBClientWithCommands() : _logLevel(logger::LogSeverity::Log()),
+                _minWireVersion(0),
+                _maxWireVersion(0),
                 _cachedAvailableOptions( (enum QueryOptions)0 ),
                 _haveCachedAvailableOptions(false) { }
 
@@ -607,7 +676,7 @@ namespace mongo {
             @param command -- command name
             @return true if the command returned "ok".
          */
-        bool simpleCommand(const string &dbname, BSONObj *info, const string &command);
+        bool simpleCommand(const std::string &dbname, BSONObj *info, const std::string &command);
 
         /** Run a database command.  Database commands are represented as BSON objects.  Common database
             commands have prebuilt helper functions -- see below.  If a helper is not available you can
@@ -622,7 +691,7 @@ namespace mongo {
 
             @return true if the command returned "ok".
         */
-        virtual bool runCommand(const string &dbname, const BSONObj& cmd, BSONObj &info,
+        virtual bool runCommand(const std::string &dbname, const BSONObj& cmd, BSONObj &info,
                                 int options=0);
 
         /**
@@ -653,13 +722,11 @@ namespace mongo {
         /** Authorize access to a particular database.
             Authentication is separate for each database on the server -- you may authenticate for any
             number of databases on a single connection.
-            The "admin" database is special and once authenticated provides access to all databases on the
-            server.
             @param      digestPassword  if password is plain text, set this to true.  otherwise assumed to be pre-digested
             @param[out] authLevel       level of authentication for the given user
             @return true if successful
         */
-        bool auth(const string &dbname, const string &username, const string &pwd, string& errmsg, bool digestPassword = true);
+        bool auth(const std::string &dbname, const std::string &username, const std::string &pwd, std::string& errmsg, bool digestPassword = true);
 
         /**
          * Logs out the connection for the given database.
@@ -668,14 +735,14 @@ namespace mongo {
          * @param info the result object for the logout command (provided for backwards
          *     compatibility with mongo shell)
          */
-        virtual void logout(const string& dbname, BSONObj& info);
+        virtual void logout(const std::string& dbname, BSONObj& info);
 
         /** count number of objects in collection ns that match the query criteria specified
             throws UserAssertion if database returns an error
         */
-        virtual unsigned long long count(const string &ns, const BSONObj& query = BSONObj(), int options=0, int limit=0, int skip=0 );
+        virtual unsigned long long count(const std::string &ns, const Query& query = Query(), int options=0, int limit=0, int skip=0 );
 
-        static string createPasswordDigest(const string &username, const string &clearTextPassword);
+        static std::string MONGO_CLIENT_FUNC createPasswordDigest(const std::string &username, const std::string &clearTextPassword);
 
         /** returns true in isMaster parm if this db is the current master
            of a replica pair.
@@ -701,23 +768,54 @@ namespace mongo {
            @param capped if true, this is a fixed size collection (where old data rolls out).
            @param max    maximum number of objects if capped (optional).
 
-           returns true if successful.
+           @return true if successful.
         */
-        bool createCollection(const string &ns, long long size = 0, bool capped = false, int max = 0, BSONObj *info = 0);
+        bool createCollection(
+            const std::string &ns,
+            long long size = 0,
+            bool capped = false,
+            int max = 0,
+            BSONObj *info = 0
+        );
+
+        /**
+         * Creates a new collection in the database. Allows for a user to provide a BSONObj that
+         * contains extra options.
+         *
+         * @param extraOptions Add extra parameters to the create collection command for features
+         *  that are version specific or for which default values have flipped between server
+         *  releases. Some examples are "usePowerOf2Sizes" and "autoIndexId".
+         *
+         * @warning Options set in extraOptions which shadow those passed in as parameters will
+         *  have indeterminate behavior.
+         *
+         * @see the form of createCollection with less parameters above.
+         *
+         * @see http://docs.mongodb.org/manual/reference/command/create/#dbcmd.create for available
+         * options.
+         */
+        bool createCollectionWithOptions(
+            const std::string &ns,
+            long long size = 0,
+            bool capped = false,
+            int max = 0,
+            const BSONObj& extraOptions = BSONObj(),
+            BSONObj *info = 0
+        );
 
         /** Get error result from the last write operation (insert/update/delete) on this connection.
             db doesn't change the command's behavior - it is just for auth checks.
             @return error message text, or empty string if no error.
         */
-        string getLastError(const std::string& db,
-                            bool fsync = false,
-                            bool j = false,
-                            int w = 0,
-                            int wtimeout = 0);
+        std::string getLastError(const std::string& db,
+                                 bool fsync = false,
+                                 bool j = false,
+                                 int w = 0,
+                                 int wtimeout = 0);
         /**
          * Same as the form of getLastError that takes a dbname, but just uses the admin DB.
          */
-        string getLastError(bool fsync = false, bool j = false, int w = 0, int wtimeout = 0);
+        std::string getLastError(bool fsync = false, bool j = false, int w = 0, int wtimeout = 0);
 
         /** Get error result from the last write operation (insert/update/delete) on this connection.
             db doesn't change the command's behavior - it is just for auth checks.
@@ -739,7 +837,7 @@ namespace mongo {
         /** Can be called with the returned value from getLastErrorDetailed to extract an error string.
             If all you need is the string, just call getLastError() instead.
         */
-        static string getLastErrorString( const BSONObj& res );
+        static std::string MONGO_CLIENT_FUNC getLastErrorString( const BSONObj& res );
 
         /** Return the last error which has occurred, even if not the very last operation.
 
@@ -759,9 +857,9 @@ namespace mongo {
          *  @param info An optional output parameter that receives the result object the database
          *  returns from the drop command.  May be null if the caller doesn't need that info.
          */
-        virtual bool dropCollection( const string &ns, BSONObj* info = NULL ) {
-            string db = nsGetDB( ns );
-            string coll = nsGetCollection( ns );
+        virtual bool dropCollection( const std::string &ns, BSONObj* info = NULL ) {
+            std::string db = nsGetDB( ns );
+            std::string coll = nsGetCollection( ns );
             uassert( 10011 ,  "no collection name", coll.size() );
 
             BSONObj temp;
@@ -770,14 +868,13 @@ namespace mongo {
             }
 
             bool res = runCommand( db.c_str() , BSON( "drop" << coll ) , *info );
-            resetIndexCache();
             return res;
         }
 
         /** Perform a repair and compaction of the specified database.  May take a long time to run.  Disk space
            must be available equal to the size of the database while repairing.
         */
-        bool repairDatabase(const string &dbname, BSONObj *info = 0) {
+        bool repairDatabase(const std::string &dbname, BSONObj *info = 0) {
             return simpleCommand(dbname, info, "repairDatabase");
         }
 
@@ -800,7 +897,13 @@ namespace mongo {
 
            returns true if successful
         */
-        bool copyDatabase(const string &fromdb, const string &todb, const string &fromhost = "", BSONObj *info = 0);
+        bool copyDatabase(const std::string& fromdb,
+                          const std::string& todb,
+                          const std::string& fromhost = "",
+                          const std::string& mechanism = "DEFAULT",
+                          const std::string& username = "",
+                          const std::string& password = "",
+                          BSONObj *info = 0);
 
         /** The Mongo database provides built-in performance profiling capabilities.  Uset setDbProfilingLevel()
            to enable.  Profiling information is then written to the system.profile collection, which one can
@@ -812,8 +915,8 @@ namespace mongo {
             ProfileAll = 2
 
         };
-        bool setDbProfilingLevel(const string &dbname, ProfilingLevel level, BSONObj *info = 0);
-        bool getDbProfilingLevel(const string &dbname, ProfilingLevel& level, BSONObj *info = 0);
+        bool setDbProfilingLevel(const std::string &dbname, ProfilingLevel level, BSONObj *info = 0);
+        bool getDbProfilingLevel(const std::string &dbname, ProfilingLevel& level, BSONObj *info = 0);
 
 
         /** This implicitly converts from char*, string, and BSONObj to be an argument to mapreduce
@@ -821,7 +924,7 @@ namespace mongo {
          */
         struct MROutput {
             MROutput(const char* collection) : out(BSON("replace" << collection)) {}
-            MROutput(const string& collection) : out(BSON("replace" << collection)) {}
+            MROutput(const std::string& collection) : out(BSON("replace" << collection)) {}
             MROutput(const BSONObj& obj) : out(obj) {}
 
             BSONObj out;
@@ -851,7 +954,116 @@ namespace mongo {
                result.getField("ok").trueValue()
              on the result to check if ok.
         */
-        BSONObj mapreduce(const string &ns, const string &jsmapf, const string &jsreducef, BSONObj query = BSONObj(), MROutput output = MRInline);
+        BSONObj mapreduce(
+            const std::string &ns,
+            const std::string &jsmapf,
+            const std::string &jsreducef,
+            Query query = Query(),
+            MROutput output = MRInline
+        );
+
+        /**
+         * Groups documents in a collection by the specified key and performs simple aggregation
+         * functions such as computing counts and sums.
+         *
+         * @note WARNING: Use of the group command is strongly discouraged, it is much better to use
+         * the aggregation framework to acheive similar functionality.
+         *
+         * @see http://docs.mongodb.org/manual/reference/method/db.collection.group
+         *
+         * @param ns The namespace to group
+         * @param key The field or fields to group specified as a projection document: { field: 1 }
+         * @param jsreduce An aggregation function that operates on the documents during the group
+         * ing operation. The function should take two arguments: the current document and an
+         * aggregation result for that group.
+         * @param output The output vector.
+         * @param initial Initial aggregation result document.
+         * @param query Optional selection criteria to determine which documents to process.
+         * @param finalize Optional function that runs for each item in the result set before
+         * returning the final values in the output vector.
+         */
+        void group(
+            const StringData& ns,
+            const StringData& jsreduce,
+            std::vector<BSONObj>* output,
+            const BSONObj& initial = BSONObj(),
+            const Query& query = Query(),
+            const BSONObj& key = BSONObj(),
+            const StringData& finalize = ""
+        );
+
+        /**
+         * Does the same thing as 'group' but accepts a key function, 'jskey', that is used to
+         * create an object representing the key. This allows for grouping on calculated fields
+         * rather on existing fields alone.
+         *
+         * @see DBClientWithCommands::group
+         */
+        void groupWithKeyFunction(
+            const StringData& ns,
+            const StringData& jsreduce,
+            std::vector<BSONObj>* output,
+            const BSONObj& initial = BSONObj(),
+            const Query& query = Query(),
+            const StringData& jskey = "",
+            const StringData& finalize = ""
+        );
+
+        /**
+         * Finds the distinct values for a specified field across a single collection and returns
+         * the results in an array.
+         *
+         * @param ns The namespace to query for distinct values.
+         * @param field The field for which to return distinct values.
+         *  Examples: "name", "address.street"
+         * @param query Optional query that specifies a filter for documents from which to retrieve
+         * distinct values.
+         */
+        BSONObj distinct(
+            const StringData& ns,
+            const StringData& field,
+            const Query& query = Query()
+        );
+
+        /**
+         * Modifies and returns a single document.
+         *
+         * @note By default, the returned document does not include modifications made on update.
+         *
+         * @param ns Namespace on which to perform this findAndModify.
+         * @param update Update document to be applied.
+         * @param query Filter for the update.
+         * @param upsert Insert if object does not exist.
+         * @param sort Sort for the filter.
+         * @param new Return the updated rather than original object.
+         * @param fields Fields to return. Specifies inclusion with 1, "{<field1>: 1, ...}"
+         */
+        BSONObj findAndModify(
+            const StringData& ns,
+            const BSONObj& query,
+            const BSONObj& update,
+            bool upsert = false,
+            bool returnNew = false,
+            const BSONObj& sort = BSONObj(),
+            const BSONObj& fields = BSONObj()
+        );
+
+        /**
+         * Removes and returns a single document.
+         *
+         * @note By default, the returned document does not include modifications made on update.
+         *
+         * @param ns Namespace on which to perform this findAndModify.
+         * @param query Filter for the update.
+         * @param sort Sort for the filter.
+         * @param fields Fields to return. Specifies inclusion with 1, "{<field1>: 1, ...}"
+         */
+        BSONObj findAndRemove(
+            const StringData& ns,
+            const BSONObj& query,
+            const BSONObj& sort = BSONObj(),
+            const BSONObj& fields = BSONObj()
+        );
 
         /** Run javascript code on the database server.
            dbname    database SavedContext in which the code runs. The javascript variable 'db' will be assigned
@@ -859,21 +1071,22 @@ namespace mongo {
            jscode    source code for a javascript function.
            info      the command object which contains any information on the invocation result including
                       the return value and other information.  If an error occurs running the jscode, error
-                     information will be in info.  (try "out() << info.toString()")
+                     information will be in info.  (try "log() << info.toString()")
            retValue  return value from the jscode function.
            args      args to pass to the jscode function.  when invoked, the 'args' variable will be defined
                      for use by the jscode.
+           nolock    if true, the server will not take a global write lock when executing the jscode.
 
            returns true if runs ok.
 
            See testDbEval() in dbclient.cpp for an example of usage.
         */
-        bool eval(const string &dbname, const string &jscode, BSONObj& info, BSONElement& retValue, BSONObj *args = 0);
+        bool eval(const std::string &dbname, const std::string &jscode, BSONObj& info, BSONElement& retValue, BSONObj *args = 0, bool nolock = false);
 
         /** validate a collection, checking for errors and reporting back statistics.
             this operation is slow and blocking.
          */
-        bool validate( const string &ns , bool scandata=true ) {
+        bool validate( const std::string &ns , bool scandata=true ) {
             BSONObj cmd = BSON( "validate" << nsGetCollection( ns ) << "scandata" << scandata );
             BSONObj info;
             return runCommand( nsGetDB( ns ).c_str() , cmd , info );
@@ -882,9 +1095,9 @@ namespace mongo {
         /* The following helpers are simply more convenient forms of eval() for certain common cases */
 
         /* invocation with no return value of interest -- with or without one simple parameter */
-        bool eval(const string &dbname, const string &jscode);
+        bool eval(const std::string &dbname, const std::string &jscode);
         template< class T >
-        bool eval(const string &dbname, const string &jscode, T parm1) {
+        bool eval(const std::string &dbname, const std::string &jscode, T parm1) {
             BSONObj info;
             BSONElement retValue;
             BSONObjBuilder b;
@@ -895,7 +1108,7 @@ namespace mongo {
 
         /** eval invocation with one parm to server and one numeric field (either int or double) returned */
         template< class T, class NumType >
-        bool eval(const string &dbname, const string &jscode, T parm1, NumType& ret) {
+        bool eval(const std::string &dbname, const std::string &jscode, T parm1, NumType& ret) {
             BSONObj info;
             BSONElement retValue;
             BSONObjBuilder b;
@@ -912,64 +1125,91 @@ namespace mongo {
            uses the { listDatabases : 1 } command.
            throws on error
          */
-        list<string> getDatabaseNames();
+        std::list<std::string> getDatabaseNames();
 
         /**
-           get a list of all the current collections in db
+         * Get a list of all the current collections in db.
          */
-        list<string> getCollectionNames( const string& db );
-
-        bool exists( const string& ns );
-
-        /** Create an index if it does not already exist.
-            ensureIndex calls are remembered so it is safe/fast to call this function many
-            times in your code.
-           @param ns collection to be indexed
-           @param keys the "key pattern" for the index.  e.g., { name : 1 }
-           @param unique if true, indicates that key uniqueness should be enforced for this index
-           @param name if not specified, it will be created from the keys automatically (which is recommended)
-           @param cache if set to false, the index cache for the connection won't remember this call
-           @param background build index in the background (see mongodb docs for details)
-           @param v index version. leave at default value. (unit tests set this parameter.)
-           @param ttl. The value of how many seconds before data should be removed from a collection.
-           @return whether or not sent message to db.
-             should be true on first call, false on subsequent unless resetIndexCache was called
-         */
-        virtual bool ensureIndex( const string &ns,
-                                  BSONObj keys,
-                                  bool unique = false,
-                                  const string &name = "",
-                                  bool cache = true,
-                                  bool background = false,
-                                  int v = -1,
-                                  int ttl = 0 );
+        std::list<std::string> getCollectionNames( const std::string& db,
+                                                   const BSONObj& filter = BSONObj() );
         /**
-           clears the index cache, so the subsequent call to ensureIndex for any index will go to the server
+         * { name : "<short collection name>",
+         *   options : { }
+         * }
          */
-        virtual void resetIndexCache();
+        std::list<BSONObj> getCollectionInfos( const std::string& db,
+                                               const BSONObj& filter = BSONObj() );
 
-        virtual auto_ptr<DBClientCursor> getIndexes( const string &ns );
+        /**
+         * Returns a DBClientCursor with collection information objects.
+         *
+         *  Example collection information object:
+         *  {
+         *      "name" : "mongo_cxx_driver",
+         *      "options" : {
+         *          "flags" : 1
+         *      }
+         *  }
+         */
+        std::auto_ptr<DBClientCursor> enumerateCollections( const std::string& db,
+                                                            const BSONObj& filter = BSONObj(),
+                                                            int batchSize = 0 );
 
-        virtual void dropIndex( const string& ns , BSONObj keys );
-        virtual void dropIndex( const string& ns , const string& indexName );
+        bool exists( const std::string& ns );
+
+        /** Create an index on the collection 'ns' as described by the given keys. If you wish
+         *  to specify options, see the more flexible overload of 'createIndex' which takes an
+         *  IndexSpec object. Failure to construct the index is reported by throwing an
+         *  OperationException.
+         *
+         *  @param ns Namespace on which to create the index
+         *  @param keys Document describing keys and index types. You must provide at least one
+         * field and its direction.
+         */
+        void createIndex( const StringData& ns, const BSONObj& keys ) {
+            return createIndex( ns, IndexSpec().addKeys(keys) );
+        }
+
+        /** Create an index on the collection 'ns' as described by the given
+         *  descriptor. Failure to construct the index is reported by throwing an
+         *  OperationException.
+         *
+         *  @param ns Namespace on which to create the index
+         *  @param descriptor Configuration object describing the index to create. The
+         *  descriptor must describe at least one key and index type.
+         */
+        virtual void createIndex( const StringData& ns, const IndexSpec& descriptor );
+
+        virtual std::list<BSONObj> getIndexSpecs( const std::string &ns, int options = 0 );
+
+        /**
+         * Enumerates all indexes on ns (a db-qualified collection name). Returns a list of the index names.
+         */
+        virtual std::list<std::string> getIndexNames( const std::string& ns, int options = 0 );
+
+        virtual std::auto_ptr<DBClientCursor> enumerateIndexes( const std::string& ns,
+                                                                int options = 0,
+                                                                int batchSize = 0 );
+
+        virtual void dropIndex( const std::string& ns , BSONObj keys );
+        virtual void dropIndex( const std::string& ns , const std::string& indexName );
 
         /**
            drops all indexes for the collection
          */
-        virtual void dropIndexes( const string& ns );
+        virtual void dropIndexes( const std::string& ns );
 
-        virtual void reIndex( const string& ns );
+        virtual void reIndex( const std::string& ns );
 
-        string genIndexName( const BSONObj& keys );
+        static std::string genIndexName( const BSONObj& keys );
 
         /** Erase / drop an entire database */
-        virtual bool dropDatabase(const string &dbname, BSONObj *info = 0) {
+        virtual bool dropDatabase(const std::string &dbname, BSONObj *info = 0) {
             bool ret = simpleCommand(dbname, info, "dropDatabase");
-            resetIndexCache();
             return ret;
         }
 
-        virtual string toString() const = 0;
+        virtual std::string toString() const = 0;
 
         /**
          * A function type for runCommand hooking; the function takes a pointer
@@ -978,7 +1218,7 @@ namespace mongo {
          * Once such a function is set as the runCommand hook, every time the DBClient
          * processes a runCommand, the hook will be called just prior to sending it to the server. 
          */
-        typedef boost::function<void(BSONObjBuilder*)> RunCommandHookFunc;
+        typedef stdx::function<void(BSONObjBuilder*)> RunCommandHookFunc;
         virtual void setRunCommandHook(RunCommandHookFunc func);
         RunCommandHookFunc getRunCommandHook() const {
             return _runCommandHook;
@@ -988,7 +1228,7 @@ namespace mongo {
          * Similar to above, but for running a function on a command response after a command
          * has been run.
          */
-        typedef boost::function<void(const BSONObj&, const std::string&)> PostRunCommandHookFunc;
+        typedef stdx::function<void(const BSONObj&, const std::string&)> PostRunCommandHookFunc;
         virtual void setPostRunCommandHook(PostRunCommandHookFunc func);
         PostRunCommandHookFunc getPostRunCommandHook() const {
             return _postRunCommandHook;
@@ -1002,7 +1242,7 @@ namespace mongo {
         /** if the element contains a not master error */
         bool isNotMasterErrorString( const BSONElement& e );
 
-        BSONObj _countCmd(const string &ns, const BSONObj& query, int options, int limit, int skip );
+        BSONObj _countCmd(const std::string &ns, const Query& query, int options, int limit, int skip );
 
         /**
          * Look up the options available on this client.  Caches the answer from
@@ -1019,9 +1259,9 @@ namespace mongo {
          * with the given password.  If digestPassword is false, the password is assumed to be
          * pre-digested.  Returns false on failure, and sets "errmsg".
          */
-        bool _authMongoCR(const string &dbname,
-                          const string &username,
-                          const string &pwd,
+        bool _authMongoCR(const std::string &dbname,
+                          const std::string &username,
+                          const std::string &pwd,
                           BSONObj *info,
                           bool digestPassword);
 
@@ -1030,8 +1270,8 @@ namespace mongo {
          * has already been communicated automatically as part of the connect call.
          * Returns false on failure and set "errmsg".
          */
-        bool _authX509(const string&dbname,
-                       const string &username,
+        bool _authX509(const std::string &dbname,
+                       const std::string &username,
                        BSONObj *info);
 
         /**
@@ -1039,36 +1279,85 @@ namespace mongo {
          */
         RunCommandHookFunc _runCommandHook;
         PostRunCommandHookFunc _postRunCommandHook;
+        int _minWireVersion;
+        int _maxWireVersion;
 
 
     private:
         enum QueryOptions _cachedAvailableOptions;
         bool _haveCachedAvailableOptions;
+
+        void _buildGroupObj(
+            const StringData& ns,
+            const StringData& jsreduce,
+            const BSONObj& initial,
+            const Query& query,
+            const StringData& finalize,
+            BSONObjBuilder* groupObj
+        );
+
+        void _runGroup(
+            const StringData& ns,
+            const BSONObj& group,
+            const Query& query,
+            std::vector<BSONObj>* output
+        );
+
+        void _findAndModify(
+            const StringData& ns,
+            const BSONObj& query,
+            const BSONObj& update,
+            const BSONObj& sort,
+            bool returnNew,
+            bool upsert,
+            const BSONObj& fields,
+            BSONObjBuilder* out
+        );
+
+        std::auto_ptr<DBClientCursor> _legacyCollectionInfo(
+            const std::string& db,
+            const BSONObj& filter,
+            int batchSize
+        );
     };
+
+    class DBClientWriter;
+    class WriteOperation;
 
     /**
      abstract class that implements the core db operations
      */
     class MONGO_CLIENT_API DBClientBase : public DBClientWithCommands, public DBConnector {
+    friend class BulkOperationBuilder;
     protected:
         static AtomicInt64 ConnectionIdSequence;
         long long _connectionId; // unique connection id for this connection
+        const boost::scoped_ptr<DBClientWriter> _wireProtocolWriter;
+        const boost::scoped_ptr<DBClientWriter> _commandWriter;
         WriteConcern _writeConcern;
-        int _minWireVersion;
-        int _maxWireVersion;
+        int _maxBsonObjectSize;
+        int _maxMessageSizeBytes;
+        int _maxWriteBatchSize;
+        void _write(
+            const std::string& ns,
+            const std::vector<WriteOperation*>& writes,
+            bool ordered,
+            const WriteConcern* writeConcern,
+            WriteResult* writeResult
+        );
     public:
         static const uint64_t INVALID_SOCK_CREATION_TIME;
 
-        DBClientBase() {
-            _writeConcern = W_NORMAL;
-            _connectionId = ConnectionIdSequence.fetchAndAdd(1);
-            _minWireVersion = _maxWireVersion = 0;
-        }
+        DBClientBase();
+
+        // Required because compiler can't generate a destructor for the _writer
+        // as it is an incomplete type.
+        virtual ~DBClientBase();
 
         long long getConnectionId() const { return _connectionId; }
 
-        WriteConcern getWriteConcern() const { return _writeConcern; }
-        void setWriteConcern( WriteConcern w ) { _writeConcern = w; }
+        const WriteConcern& getWriteConcern() const { return _writeConcern; }
+        void setWriteConcern( const WriteConcern& w ) { _writeConcern = w; }
 
         void setWireVersions( int minWireVersion, int maxWireVersion ){
             _minWireVersion = minWireVersion;
@@ -1077,6 +1366,9 @@ namespace mongo {
 
         int getMinWireVersion() { return _minWireVersion; }
         int getMaxWireVersion() { return _maxWireVersion; }
+        int getMaxBsonObjectSize() { return _maxBsonObjectSize; }
+        int getMaxMessageSizeBytes() { return _maxMessageSizeBytes; }
+        int getMaxWriteBatchSize() { return _maxWriteBatchSize; }
 
         /** send a query to the database.
          @param ns namespace to query, format is <dbname>.<collectname>[.<collectname>]*
@@ -1092,8 +1384,39 @@ namespace mongo {
          @return    cursor.   0 if error (connection failure)
          @throws AssertionException
         */
-        virtual auto_ptr<DBClientCursor> query(const string &ns, Query query, int nToReturn = 0, int nToSkip = 0,
-                                               const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 );
+        virtual std::auto_ptr<DBClientCursor> query(const std::string &ns, Query query, int nToReturn = 0, int nToSkip = 0,
+                                                    const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 );
+
+        /**
+         * Returns a list of up to 'numCursors' cursors that can be iterated concurrently.
+         *
+         * As long as the collection is not modified during scanning, each document appears once
+         * in one of the cursors' result sets.
+         *
+         * @note Warning: One must delete the cursors after use.
+         * @note Warning: One must delete any new connections created by the connection factory
+         *  after use.
+         *
+         * @see example usage in dbclient_test.cpp -> DBClientTest/ParallelCollectionScan
+         *
+         * @param ns The namespace to scan
+         * @param numCursors Number of cursors to return. You may get back less than you asked for.
+         * @param cursors Output vector to hold cursors created for this scan.
+         * @param connectionFactory Function that returns a pointer to a DBClientBase for use by
+         *  newly created cursors. The function takes zero parameters but additional parameters
+         *  may be bound (if required) using std::bind. See the example listed above for more info.
+         */
+        virtual void parallelScan(
+            const StringData& ns,
+            int numCursors,
+            std::vector<DBClientCursor*>* cursors,
+            stdx::function<DBClientBase* ()> connectionFactory
+        );
+
+        virtual std::auto_ptr<DBClientCursor> aggregate(const std::string& ns,
+                                                        const BSONObj& pipeline,
+                                                        const BSONObj* aggregateOptions = NULL,
+                                                        int queryOptions = 0);
 
 
         /** Uses QueryOption_Exhaust, when available.
@@ -1104,14 +1427,14 @@ namespace mongo {
             Use the DBClientCursorBatchIterator version, below, if you want to do items in large
             blocks, perhaps to avoid granular locking and such.
          */
-        virtual unsigned long long query( boost::function<void(const BSONObj&)> f,
-                                          const string& ns,
+        virtual unsigned long long query( stdx::function<void(const BSONObj&)> f,
+                                          const std::string& ns,
                                           Query query,
                                           const BSONObj *fieldsToReturn = 0,
                                           int queryOptions = 0 );
 
-        virtual unsigned long long query( boost::function<void(DBClientCursorBatchIterator&)> f,
-                                          const string& ns,
+        virtual unsigned long long query( stdx::function<void(DBClientCursorBatchIterator&)> f,
+                                          const std::string& ns,
                                           Query query,
                                           const BSONObj *fieldsToReturn = 0,
                                           int queryOptions = 0 );
@@ -1122,35 +1445,73 @@ namespace mongo {
             @return an handle to a previously allocated cursor
             @throws AssertionException
          */
-        virtual auto_ptr<DBClientCursor> getMore( const string &ns, long long cursorId, int nToReturn = 0, int options = 0 );
+        virtual std::auto_ptr<DBClientCursor> getMore( const std::string &ns, long long cursorId, int nToReturn = 0, int options = 0 );
 
         /**
            insert an object into the database
          */
-        virtual void insert( const string &ns , BSONObj obj , int flags=0);
+        virtual void insert(
+            const std::string &ns,
+            BSONObj obj,
+            int flags=0,
+            const WriteConcern* wc=NULL
+        );
 
         /**
            insert a vector of objects into the database
          */
-        virtual void insert( const string &ns, const vector< BSONObj >& v , int flags=0);
+        virtual void insert(
+            const std::string &ns,
+            const std::vector< BSONObj >& v,
+            int flags=0,
+            const WriteConcern* wc=NULL
+        );
 
         /**
            updates objects matching query
          */
-        virtual void update( const string &ns,
-                             Query query,
-                             BSONObj obj,
-                             bool upsert = false, bool multi = false );
+        virtual void update(
+            const std::string &ns,
+            Query query,
+            BSONObj obj,
+            bool upsert=false,
+            bool multi=false,
+            const WriteConcern* wc=NULL
+        );
 
-        virtual void update( const string &ns, Query query, BSONObj obj, int flags );
+        virtual void update(
+            const std::string &ns,
+            Query query,
+            BSONObj obj,
+            int flags,
+            const WriteConcern* wc=NULL
+        );
+
+        /**
+         * Initializes an ordered bulk operation by returning an object that can be
+         * used to enqueue multiple operations for batch execution.
+         *
+         * @param ns Namespace on which to apply the operations.
+         * @see BulkOperationBuilder
+         */
+        virtual BulkOperationBuilder initializeUnorderedBulkOp(const std::string& ns);
+
+        /**
+         * Initializes an unordered bulk operation by returning an object that can be
+         * used to enqueue multiple operations for batch execution.
+         *
+         * @param ns Namespace on which to apply the operations.
+         * @see BulkOperationBuilder
+         */
+        virtual BulkOperationBuilder initializeOrderedBulkOp(const std::string& ns);
 
         /**
            remove matching objects from the database
            @param justOne if this true, then once a single match is found will stop
          */
-        virtual void remove( const string &ns , Query q , bool justOne = 0 );
+        virtual void remove( const std::string &ns , Query q , bool justOne = 0, const WriteConcern* wc=NULL );
 
-        virtual void remove( const string &ns , Query query, int flags );
+        virtual void remove( const std::string &ns , Query query, int flags, const WriteConcern* wc=NULL );
 
         virtual bool isFailed() const = 0;
 
@@ -1172,13 +1533,15 @@ namespace mongo {
             return INVALID_SOCK_CREATION_TIME;
         }
 
+        virtual void reset() {}
+
     }; // DBClientBase
 
     class DBClientReplicaSet;
 
     class MONGO_CLIENT_API ConnectException : public UserException {
     public:
-        ConnectException(string msg) : UserException(9000,msg) { }
+        ConnectException(std::string msg) : UserException(9000,msg) { }
     };
 
     /**
@@ -1197,28 +1560,11 @@ namespace mongo {
          */
         DBClientConnection(bool _autoReconnect=false, DBClientReplicaSet* cp=0, double so_timeout=0) :
             clientSet(cp), _failed(false), autoReconnect(_autoReconnect), autoReconnectBackoff(1000, 2000), _so_timeout(so_timeout) {
-            _numConnections++;
+            _numConnections.fetchAndAdd(1);
         }
 
         virtual ~DBClientConnection() {
-            _numConnections--;
-        }
-
-        /** Connect to a Mongo database server.
-
-           If autoReconnect is true, you can try to use the DBClientConnection even when
-           false was returned -- it will try to connect again.
-
-           @param serverHostname host to connect to.  can include port number ( 127.0.0.1 , 127.0.0.1:5555 )
-                                 If you use IPv6 you must add a port number ( ::1:27017 )
-           @param errmsg any relevant error message will appended to the string
-           @deprecated please use HostAndPort
-           @return false if fails to connect.
-        */
-        virtual bool connect(const char * hostname, string& errmsg) {
-            // TODO: remove this method
-            HostAndPort t( hostname );
-            return connect( t , errmsg );
+            _numConnections.fetchAndAdd(-1);
         }
 
         /** Connect to a Mongo database server.
@@ -1230,7 +1576,12 @@ namespace mongo {
            @param errmsg any relevant error message will appended to the string
            @return false if fails to connect.
         */
-        virtual bool connect(const HostAndPort& server, string& errmsg);
+        virtual bool connect(const HostAndPort& server, std::string& errmsg);
+
+        /** Compatibility connect now that HostAndPort has an explicit constructor */
+        bool connect(const std::string& server, std::string& errmsg) {
+            return connect(HostAndPort(server), errmsg);
+        }
 
         /** Connect to a Mongo database server.  Exception throwing version.
             Throws a UserException if cannot connect.
@@ -1240,10 +1591,10 @@ namespace mongo {
 
            @param serverHostname host to connect to.  can include port number ( 127.0.0.1 , 127.0.0.1:5555 )
         */
-        void connect(const string& serverHostname) {
-            string errmsg;
+        void connect(const std::string& serverHostname) {
+            std::string errmsg;
             if( !connect(HostAndPort(serverHostname), errmsg) )
-                throw ConnectException(string("can't connect ") + errmsg);
+                throw ConnectException(std::string("can't connect ") + errmsg);
         }
 
         /**
@@ -1253,21 +1604,18 @@ namespace mongo {
          * @param info the result object for the logout command (provided for backwards
          *     compatibility with mongo shell)
          */
-        virtual void logout(const string& dbname, BSONObj& info);
+        virtual void logout(const std::string& dbname, BSONObj& info);
 
-        virtual auto_ptr<DBClientCursor> query(const string &ns, Query query=Query(), int nToReturn = 0, int nToSkip = 0,
-                                               const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 ) {
-            checkConnection();
-            return DBClientBase::query( ns, query, nToReturn, nToSkip, fieldsToReturn, queryOptions , batchSize );
-        }
+        virtual std::auto_ptr<DBClientCursor> query(const std::string &ns, Query query=Query(), int nToReturn = 0, int nToSkip = 0,
+                                                    const BSONObj *fieldsToReturn = 0, int queryOptions = 0 , int batchSize = 0 );
 
-        virtual unsigned long long query( boost::function<void(DBClientCursorBatchIterator &)> f,
-                                          const string& ns,
+        virtual unsigned long long query( stdx::function<void(DBClientCursorBatchIterator &)> f,
+                                          const std::string& ns,
                                           Query query,
                                           const BSONObj *fieldsToReturn,
                                           int queryOptions );
 
-        virtual bool runCommand(const string &dbname,
+        virtual bool runCommand(const std::string &dbname,
                                 const BSONObj& cmd,
                                 BSONObj &info,
                                 int options=0);
@@ -1282,30 +1630,31 @@ namespace mongo {
 
         MessagingPort& port() { verify(p); return *p; }
 
-        string toString() const {
-            stringstream ss;
+        std::string toString() const {
+            std::stringstream ss;
             ss << _serverString;
             if ( !_serverAddrString.empty() ) ss << " (" << _serverAddrString << ")";
             if ( _failed ) ss << " failed";
             return ss.str();
         }
 
-        string getServerAddress() const { return _serverString; }
+        std::string getServerAddress() const { return _serverString; }
+        const HostAndPort& getServerHostAndPort() const { return _server; }
 
         virtual void killCursor( long long cursorID );
         virtual bool callRead( Message& toSend , Message& response ) { return call( toSend , response ); }
-        virtual void say( Message &toSend, bool isRetry = false , string * actualServer = 0 );
+        virtual void say( Message &toSend, bool isRetry = false , std::string * actualServer = 0 );
         virtual bool recv( Message& m );
-        virtual void checkResponse( const char *data, int nReturned, bool* retry = NULL, string* host = NULL );
-        virtual bool call( Message &toSend, Message &response, bool assertOk = true , string * actualServer = 0 );
+        virtual void checkResponse( const char *data, int nReturned, bool* retry = NULL, std::string* host = NULL );
+        virtual bool call( Message &toSend, Message &response, bool assertOk = true , std::string * actualServer = 0 );
         virtual ConnectionString::ConnectionType type() const { return ConnectionString::MASTER; }
         void setSoTimeout(double timeout);
         double getSoTimeout() const { return _so_timeout; }
 
         virtual bool lazySupported() const { return true; }
 
-        static int getNumConnections() {
-            return _numConnections;
+        static int MONGO_CLIENT_FUNC getNumConnections() {
+            return _numConnections.load();
         }
 
         /**
@@ -1320,13 +1669,12 @@ namespace mongo {
          */
         void setReplSetClientCallback(DBClientReplicaSet* rsClient);
 
-        static void setLazyKillCursor( bool lazy ) { _lazyKillCursor = lazy; }
-        static bool getLazyKillCursor() { return _lazyKillCursor; }
+        static void MONGO_CLIENT_FUNC setLazyKillCursor( bool lazy ) { _lazyKillCursor = lazy; }
+        static bool MONGO_CLIENT_FUNC getLazyKillCursor() { return _lazyKillCursor; }
 
         uint64_t getSockCreationMicroSec() const;
 
     protected:
-        friend class SyncClusterConnection;
         virtual void _auth(const BSONObj& params);
         virtual void sayPiggyBack( Message &toSend );
 
@@ -1337,18 +1685,18 @@ namespace mongo {
         const bool autoReconnect;
         Backoff autoReconnectBackoff;
         HostAndPort _server; // remember for reconnects
-        string _serverString;     // server host and port
-        string _serverAddrString; // resolved ip of server
+        std::string _serverString;     // server host and port
+        std::string _serverAddrString; // resolved ip of server
         void _checkConnection();
 
         // throws SocketException if in failed state and not reconnecting or if waiting to reconnect
         void checkConnection() { if( _failed ) _checkConnection(); }
 
-        map<string, BSONObj> authCache;
+        std::map<std::string, BSONObj> authCache;
         double _so_timeout;
-        bool _connect( string& errmsg );
+        bool _connect( std::string& errmsg );
 
-        static AtomicUInt _numConnections;
+        static AtomicInt32 _numConnections;
         static bool _lazyKillCursor; // lazy means we piggy back kill cursors on next op
 
 #ifdef MONGO_SSL
@@ -1358,17 +1706,13 @@ namespace mongo {
 
     /** pings server to check if it's up
      */
-    MONGO_CLIENT_API bool serverAlive( const string &uri );
+    MONGO_CLIENT_API bool MONGO_CLIENT_FUNC serverAlive( const std::string &uri );
 
-    MONGO_CLIENT_API DBClientBase * createDirectClient();
+    MONGO_CLIENT_API BSONElement MONGO_CLIENT_FUNC getErrField( const BSONObj& result );
+    MONGO_CLIENT_API bool MONGO_CLIENT_FUNC hasErrField( const BSONObj& result );
 
-    MONGO_CLIENT_API BSONElement getErrField( const BSONObj& result );
-    MONGO_CLIENT_API bool hasErrField( const BSONObj& result );
-
-    MONGO_CLIENT_API inline std::ostream& operator<<( std::ostream &s, const Query &q ) {
+    MONGO_CLIENT_API inline std::ostream& MONGO_CLIENT_FUNC operator<<( std::ostream &s, const Query &q ) {
         return s << q.toString();
     }
 
 } // namespace mongo
-
-#include "mongo/client/dbclientcursor.h"

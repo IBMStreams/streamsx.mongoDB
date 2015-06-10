@@ -17,9 +17,9 @@ One output port is defined for use with custom output functions, multiple tuples
       </description>
       <metrics>
         <metric>
-          <name>dbConnectionPoolSize</name>
-          <description/>
-          <kind>Gauge</kind>
+          <name>nQueries</name>
+          <description></description>
+          <kind>Counter</kind>
         </metric>
       </metrics>
       <customLiterals>
@@ -66,7 +66,7 @@ One output port is defined for use with custom output functions, multiple tuples
             <cmn:lib>mongoclient</cmn:lib>
             <cmn:libPath>../../impl/lib</cmn:libPath>
             <cmn:includePath>../../impl/include</cmn:includePath>
-            <cmn:command>../../impl/bin/setLinks.sh</cmn:command>
+            <cmn:command></cmn:command>
           </cmn:managedLibrary>
         </library>
       </libraryDependencies>
@@ -159,6 +159,15 @@ One output port is defined for use with custom output functions, multiple tuples
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
         <type>float64</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>autoReconnect</name>
+        <description>The optional 'boolean' parameter specifies if try to reconnect when connection failed.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>boolean</type>
         <cardinality>1</cardinality>
       </parameter>
       <parameter>

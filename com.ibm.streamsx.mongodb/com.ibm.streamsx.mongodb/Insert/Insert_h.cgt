@@ -1,15 +1,15 @@
 #include <SPL/Runtime/Operator/OperatorMetrics.h>
 #include <streams_boost/shared_ptr.hpp>
+#include <streams_boost/thread/tss.hpp>
 #include <streams_boost/typeof/typeof.hpp>
 #include <streams_boost/foreach.hpp>
 #define foreach STREAMS_BOOST_FOREACH
 
-namespace boost = streams_boost;
-
-#include "mongo/client/dbclient.h"
+#include "Mongo.h"
 
 using std::string;
 using streams_boost::shared_ptr;
+
 using namespace mongo;
 
 <%SPL::CodeGen::headerPrologue($model);%>
@@ -34,10 +34,13 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
-	Metric & dcpsMetric_;
+	Metric & nInsertsMetric_;
 
 	string buildConnUrl(const string& dbHost, uint32_t dbPort);
 	string buildDbCollection(const string& db, const string& collection);
+
+	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
+	DBClientConnection * getDBClientConnection(const string& dbHost, uint32_t dbPort);
 };
 
 <%SPL::CodeGen::headerEpilogue($model);%>

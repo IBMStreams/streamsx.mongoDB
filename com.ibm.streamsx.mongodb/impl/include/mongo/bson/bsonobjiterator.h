@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <boost/preprocessor/cat.hpp> // like the ## operator but works with __LINE__
+#include <streams_boost/preprocessor/cat.hpp> // like the ## operator but works with __LINE__
 
 #include "mongo/bson/bsonobj.h"
 #include "mongo/base/disallow_copying.h"
@@ -160,12 +160,12 @@ namespace mongo {
      *
      */
 
-#define BSONForEach(e, obj)                                     \
-    BSONObjIterator STREAMS_BOOST_PP_CAT(it_,__LINE__)(obj);            \
-    for ( BSONElement e;                                        \
-            (STREAMS_BOOST_PP_CAT(it_,__LINE__).more() ?                  \
-             (e = STREAMS_BOOST_PP_CAT(it_,__LINE__).next(), true) :  \
-             false) ;                                         \
-            /*nothing*/ )
+#define BSONForEach(e, obj)                                       \
+    ::mongo::BSONObjIterator BOOST_PP_CAT(it_,__LINE__)(obj);     \
+    for ( ::mongo::BSONElement e;                                 \
+          (BOOST_PP_CAT(it_,__LINE__).more() ?                    \
+           (e = BOOST_PP_CAT(it_,__LINE__).next(), true) :        \
+           false) ;                                               \
+          /*nothing*/ )
 
 }

@@ -22,26 +22,33 @@
 
 #define MONGO_MACROS_PUSHED 1
 
-// util/allocator.h
-#ifdef MONGO_MALLOC
-#pragma push_macro("malloc")
-#undef malloc
-#define malloc MONGO_malloc
-#pragma push_macro("realloc")
-#undef realloc
-#define realloc MONGO_realloc
+#if defined(_WIN32)
+#pragma push_macro("min")
+#undef min
+#pragma push_macro("max")
+#undef max
+#pragma push_macro("NOMINMAX")
+#ifndef NOMINMAX
+#define NOMINMAX
 #endif
+#endif
+
+// bson/inline_decls.h
+#pragma push_macro("NOINLINE_DECL")
+#undef NOINLINE_DECL
+#pragma push_macro("PACKED_DECL")
+#undef PACKED_DECL
 
 // util/assert_util.h
 #pragma push_macro("verify")
 #undef verify
-#define verify MONGO_verify
+#define verify(expression) MONGO_verify(expression)
 #pragma push_macro("invariant")
 #undef invariant
 #define invariant MONGO_invariant
-#pragma push_macro("dassert")
-#undef dassert
-#define dassert MONGO_dassert
+#pragma push_macro("invariantOK")
+#undef invariantOK
+#define invariantOK MONGO_invariantOK
 #pragma push_macro("wassert")
 #undef wassert
 #define wassert MONGO_wassert
@@ -54,38 +61,3 @@
 #pragma push_macro("DESTRUCTOR_GUARD")
 #undef DESTRUCTOR_GUARD
 #define DESTRUCTOR_GUARD MONGO_DESTRUCTOR_GUARD
-
-// util/goodies.h
-#pragma push_macro("PRINT")
-#undef PRINT
-#define PRINT MONGO_PRINT
-#pragma push_macro("PRINTFL")
-#undef PRINTFL
-#define PRINTFL MONGO_PRINTFL
-
-// util/debug_util.h
-#pragma push_macro("DEV")
-#undef DEV
-#define DEV MONGO_DEV
-#pragma push_macro("DEBUGGING")
-#undef DEBUGGING
-#define DEBUGGING MONGO_DEBUGGING
-#pragma push_macro("SOMETIMES")
-#undef SOMETIMES
-#define SOMETIMES MONGO_SOMETIMES
-#pragma push_macro("OCCASIONALLY")
-#undef OCCASIONALLY
-#define OCCASIONALLY MONGO_OCCASIONALLY
-#pragma push_macro("RARELY")
-#undef RARELY
-#define RARELY MONGO_RARELY
-#pragma push_macro("ONCE")
-#undef ONCE
-#define ONCE MONGO_ONCE
-
-// util/log.h
-#pragma push_macro("LOG")
-#undef LOG
-#define LOG MONGO_LOG
-
-

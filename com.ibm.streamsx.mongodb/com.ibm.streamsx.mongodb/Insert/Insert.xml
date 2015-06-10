@@ -15,9 +15,9 @@ One output port is defined for use with custom output functions and optionally t
       </description>
       <metrics>
         <metric>
-          <name>dbConnectionPoolSize</name>
+          <name>nInserts</name>
           <description></description>
-          <kind>Gauge</kind>
+          <kind>Counter</kind>
         </metric>
       </metrics>
       <customLiterals>
@@ -43,14 +43,6 @@ One output port is defined for use with custom output functions and optionally t
             <description>writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
-          <function pseudoFunction="true">
-            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection'. T can be of type tuple or map only.</description>
-            <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>connects to 'dbHost:dbPort' and writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
-            <prototype>&lt;any T> rstring InsertDocument(rstring dbHost, uint32 dbPort, rstring db, rstring collection, rstring key, T data)</prototype>
-          </function>
         </customOutputFunction>
       </customOutputFunctions>
       <libraryDependencies>
@@ -60,7 +52,6 @@ One output port is defined for use with custom output functions and optionally t
             <cmn:lib>mongoclient</cmn:lib>
             <cmn:libPath>../../impl/lib</cmn:libPath>
             <cmn:includePath>../../impl/include</cmn:includePath>
-            <cmn:command>../../impl/bin/setLinks.sh</cmn:command>
           </cmn:managedLibrary>
         </library>
       </libraryDependencies>
@@ -107,6 +98,15 @@ One output port is defined for use with custom output functions and optionally t
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
         <type>float64</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>autoReconnect</name>
+        <description>The optional 'boolean' parameter specifies if try to reconnect when connection failed.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>boolean</type>
         <cardinality>1</cardinality>
       </parameter>
       <parameter>

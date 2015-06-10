@@ -23,9 +23,9 @@
 #include <limits>
 #include <string>
 
-namespace mongo {
+#include "mongo/client/export_macros.h"
 
-    using std::string;
+namespace mongo {
 
     /**
      * A StringData object wraps a 'const string&' or a 'const char*' without copying its
@@ -40,7 +40,7 @@ namespace mongo {
      *  + Because string data can be used to pass a substring around, one should never assume a
      *    rawData() terminates with a null.
      */
-    class StringData {
+    class MONGO_CLIENT_API StringData {
     public:
 
         /** Constructs an empty string data */
@@ -51,8 +51,8 @@ namespace mongo {
          * Constructs a StringData, for the case where the length of string is not known. 'c'
          * must be a pointer to a null-terminated string.
          */
-        StringData( const char* c )
-            : _data(c), _size((c == NULL) ? 0 : string::npos) {}
+        StringData( const char* str )
+            : _data(str), _size((str == NULL) ? 0 : std::strlen(str)) {}
 
         /**
          * Constructs a StringData explicitly, for the case where the length of the string is
@@ -98,7 +98,7 @@ namespace mongo {
 
         size_t find( char c , size_t fromPos = 0 ) const;
         size_t find( const StringData& needle ) const;
-        size_t rfind( char c, size_t fromPos = string::npos ) const;
+        size_t rfind( char c, size_t fromPos = std::string::npos ) const;
 
         /**
          * Returns true if 'prefix' is a substring of this instance, anchored at position 0.
@@ -121,9 +121,9 @@ namespace mongo {
          */
         const char* rawData() const { return _data; }
 
-        size_t size() const { fillSize(); return _size; }
+        size_t size() const { return _size; }
         bool empty() const { return size() == 0; }
-        string toString() const { return string(_data, size()); }
+        std::string toString() const { return std::string(_data, size()); }
         char operator[] ( unsigned pos ) const { return _data[pos]; }
 
         /**
@@ -146,21 +146,15 @@ namespace mongo {
 
     private:
         const char* _data;        // is not guaranted to be null terminated (see "notes" above)
-        mutable size_t _size;     // 'size' does not include the null terminator
-
-        void fillSize() const {
-            if (_size == string::npos) {
-                _size = strlen(_data);
-            }
-        }
+        size_t _size;     // 'size' does not include the null terminator
     };
 
     inline bool operator==(const StringData& lhs, const StringData& rhs) {
-        return lhs.compare(rhs) == 0;
+        return (lhs.size() == rhs.size()) && (lhs.compare(rhs) == 0);
     }
 
     inline bool operator!=(const StringData& lhs, const StringData& rhs) {
-        return lhs.compare(rhs) != 0;
+        return !(lhs == rhs);
     }
 
     inline bool operator<(const StringData& lhs, const StringData& rhs) {
@@ -179,7 +173,7 @@ namespace mongo {
         return lhs.compare(rhs) >= 0;
     }
 
-    std::ostream& operator<<(std::ostream& stream, const StringData& value);
+    MONGO_CLIENT_API std::ostream& MONGO_CLIENT_FUNC operator<<(std::ostream& stream, const StringData& value);
 
 } // namespace mongo
 

@@ -53,8 +53,6 @@ namespace mongo {
      *     In a query:
      *     conn->findOne(myColl, BSON(MyCollFields::count.gt(10))) ;
      *
-     *     In a command:
-     *     conn->ensureIndex(mycoll, BSON(MyCollFields::draining() << 1), true);
      */
 
     template<typename T>
@@ -96,7 +94,7 @@ namespace mongo {
             return _default;
         }
 
-        const bool hasDefault() const {
+        bool hasDefault() const {
             return _defaultSet;
         }
 

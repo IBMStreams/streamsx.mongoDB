@@ -114,36 +114,72 @@ namespace mongo {
             CommandResultSchemaViolation = 78,
             UnknownReplWriteConcern = 79,
             RoleDataInconsistent = 80,
-            NoClientContext = 81,
+            NoWhereParseContext = 81,
             NoProgressMade = 82,
             RemoteResultsUnavailable = 83,
+            DuplicateKeyValue = 84,
             IndexOptionsConflict = 85,
             IndexKeySpecsConflict = 86,
+            CannotSplit = 87,
+            SplitFailed = 88,
+            NetworkTimeout = 89,
+            CallbackCanceled = 90,
+            ShutdownInProgress = 91,
+            SecondaryAheadOfPrimary = 92,
+            InvalidReplicaSetConfig = 93,
+            NotYetInitialized = 94,
+            NotSecondary = 95,
+            OperationFailed = 96,
+            NoProjectionFound = 97,
+            DBPathInUse = 98,
+            WriteConcernNotDefined = 99,
+            CannotSatisfyWriteConcern = 100,
+            OutdatedClient = 101,
+            IncompatibleAuditMetadata = 102,
+            NewReplicaSetConfigurationIncompatible = 103,
+            NodeNotElectable = 104,
+            IncompatibleShardingMetadata = 105,
+            DistributedClockSkewed = 106,
+            LockFailed = 107,
+            InconsistentReplicaSetNames = 108,
+            ConfigurationInProgress = 109,
+            CannotInitializeNodeWithData = 110,
+            NotExactValueField = 111,
+            WriteConflict = 112,
+            InitialSyncFailure = 113,
+            InitialSyncOplogSourceMissing = 114,
+            CommandNotSupported = 115,
+            DocTooLargeForCapped = 116,
+            ConflictingOperationInProgress = 117,
             NotMaster = 10107,
             DuplicateKey = 11000,
             InterruptedAtShutdown = 11600,
             Interrupted = 11601,
             BackgroundOperationInProgressForDatabase = 12586,
             BackgroundOperationInProgressForNamespace = 12587,
+            ShardKeyTooBig = 13334,
+            NotMasterNoSlaveOkCode = 13435,
+            NotMasterOrSecondaryCode = 13436,
             OutOfDiskSpace = 14031,
+            KeyTooLong = 17280,
             MaxError
         };
 
-        static std::string errorString(Error err);
+        static std::string MONGO_CLIENT_FUNC errorString(Error err);
 
         /**
          * Parses an Error from its "name".  Returns UnknownError if "name" is unrecognized.
          *
          * NOTE: Also returns UnknownError for the string "UnknownError".
          */
-        static Error fromString(const StringData& name);
+        static Error MONGO_CLIENT_FUNC fromString(const StringData& name);
 
         /**
          * Casts an integer "code" to an Error.  Unrecognized codes are preserved, meaning
          * that the result of a call to fromInt() may not be one of the values in the
          * Error enumeration.
          */
-        static Error fromInt(int code);
+        static Error MONGO_CLIENT_FUNC fromInt(int code);
 
         static bool isNetworkError(Error err);
         static bool isInterruption(Error err);

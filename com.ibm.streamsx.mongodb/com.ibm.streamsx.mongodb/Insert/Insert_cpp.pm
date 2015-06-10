@@ -1,6 +1,6 @@
 
 package Insert_cpp;
-use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::Window; 
+use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Annotation; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeEvaluator; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::TupleValue; use SPL::Operator::Instance::Window; 
 sub main::generate($$) {
    my ($xml, $signature) = @_;  
    print "// $$signature\n";
@@ -20,6 +20,7 @@ sub main::generate($$) {
    	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
    	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
    	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
+   	my $autoReconnect = ($_ = $model->getParameterByName('autoReconnect')) ? $_->getValueAt(0)->getCppExpression() : 'true';
    print "\n";
    print "\n";
    print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {', "\n";
@@ -36,7 +37,7 @@ sub main::generate($$) {
    print '	return dbCollection;', "\n";
    print '}', "\n";
    print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")) {', "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : nInsertsMetric_(getContext().getMetrics().getCustomMetricByName("nInserts")) {', "\n";
    print "\n";
    print '	if(!MongoInit<void>::status_.isOK()) {', "\n";
    print '		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");', "\n";
@@ -48,22 +49,20 @@ sub main::generate($$) {
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::allPortsReady() {', "\n";
    print "\n";
    print '	try {', "\n";
-   print '		ScopedDbConnection conn(buildConnUrl(';
+   print '		DBClientConnection conn;', "\n";
+   print '		conn.connect(buildConnUrl(';
    print $dbHost;
    print ', ';
    print $dbPort;
-   print '), (double)';
-   print $timeout;
-   print ');', "\n";
-   print '		if(!conn.ok()) {', "\n";
-   print '			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");', "\n";
-   print '		}', "\n";
-   print '		dcpsMetric_.setValueNoLock(conn.getNumConnections());', "\n";
-   print '		', "\n";
-   print '		conn.done();', "\n";
+   print '));', "\n";
    print '	}', "\n";
    print '	catch( const DBException &e ) {', "\n";
-   print '		THROW(SPL::SPLRuntimeOperator, e.what());', "\n";
+   print '		if (';
+   print $autoReconnect;
+   print ')', "\n";
+   print '			SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");', "\n";
+   print '		else', "\n";
+   print '			THROW(SPL::SPLRuntimeOperator, e.what());', "\n";
    print '	}', "\n";
    print '}', "\n";
    print "\n";
@@ -107,16 +106,15 @@ sub main::generate($$) {
    }
    		  else {
    			my $numberOfParams = @{$attribute->getAssignmentOutputFunctionParameterValues};
-   			my $shift = $numberOfParams > 4 ? 2 : 0;
    			my $expr;
    			my $key = '';
-   			my $keyAssigned = $numberOfParams == 4 || $numberOfParams == 6;
+   			my $keyAssigned = $numberOfParams > 3;
    			if ($keyAssigned) {
-   				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift)->getCppExpression();
-   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3+$shift);
+   				$key = $attribute->getAssignmentOutputFunctionParameterValueAt(2)->getCppExpression();
+   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(3);
    			}
    			else {
-   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2+$shift);
+   				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
    				if (InsertCommon::keyLess($expr->getSPLType())) {
    					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
    				}
@@ -149,61 +147,66 @@ sub main::generate($$) {
    # [----- perl code -----]
    			InsertCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
    			
-   			my $currentDbHost = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression()  : $dbHost;
-   			my $currentDbPort = $numberOfParams > 4 ? $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression()  : $dbPort;
-   			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0+$shift)->getCppExpression();
-   			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1+$shift)->getCppExpression();
+   			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
+   			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
    # [----- perl code -----]
    print "\n";
    print '			', "\n";
-   print '			rstring errorMsg = "";', "\n";
-   print '			try {', "\n";
-   print '				ScopedDbConnection conn(buildConnUrl(';
-   print $currentDbHost;
+   print '			DBClientConnection * connPtr = getDBClientConnection(';
+   print $dbHost;
    print ', ';
-   print $currentDbPort;
-   print '), (double)';
-   print $timeout;
+   print $dbPort;
    print ');', "\n";
-   print '				dcpsMetric_.setValue(conn.getNumConnections());', "\n";
+   print '			', "\n";
+   print '			if(connPtr->isFailed()) {', "\n";
+   print '				if (';
+   print $autoReconnect;
+   print ') {', "\n";
+   print '					SPLAPPLOG(L_ERROR, "Trying to reconnect to " << ';
+   print $dbHost;
+   print ' << ":" << ';
+   print $dbPort;
+   print ', "MongoDB Connect");', "\n";
+   print '					connPtr->isStillConnected();', "\n";
+   print '				}', "\n";
+   print '				else {', "\n";
+   print '					THROW(SPL::SPLRuntimeOperator, "Connection to " << ';
+   print $dbHost;
+   print ' << ":" << ';
+   print $dbPort;
+   print ' << " aborted");', "\n";
+   print '				}', "\n";
+   print '			}', "\n";
    print '				', "\n";
-   print '				if(conn.ok()) {', "\n";
-   print '					', "\n";
-   print '					';
+   print '			';
    if ($profiling eq 'slow') {
    print "\n";
-   print '						conn->DBClientWithCommands::setDbProfilingLevel(';
+   print '				connPtr->setDbProfilingLevel(';
    print $db;
-   print ',  DBClientWithCommands::ProfileSlow);', "\n";
-   print '					';
+   print ',  ProfileSlow);', "\n";
+   print '			';
    } elsif ($profiling eq 'all') {
    print "\n";
-   print '						conn->DBClientWithCommands::setDbProfilingLevel(';
+   print '				connPtr->setDbProfilingLevel(';
    print $db;
-   print ',  DBClientWithCommands::ProfileAll);', "\n";
-   print '					';
+   print ',  ProfileAll);', "\n";
+   print '			';
    }
    print "\n";
-   print '					', "\n";
-   print '					conn->insert(buildDbCollection(';
+   print '			', "\n";
+   print '			connPtr->insert(buildDbCollection(';
    print $db;
    print ', ';
    print $collection;
    print '), b0.obj());', "\n";
-   print '					errorMsg = conn->DBClientWithCommands::getLastError();', "\n";
-   print '					conn.done();', "\n";
-   print '				}', "\n";
-   print '				else {', "\n";
-   print '					errorMsg = "MongoDB create connection failed";', "\n";
-   print '				}', "\n";
-   print '			}', "\n";
-   print '			catch( const DBException &e ) {', "\n";
-   print '				errorMsg = e.what();', "\n";
-   print '			}', "\n";
+   print '			const string & errorMsg = connPtr->getLastError();', "\n";
    print '			', "\n";
-   print '			if (errorMsg != "") {', "\n";
+   print '			if (errorMsg == "") {', "\n";
+   print '				nInsertsMetric_.incrementValue();', "\n";
+   print '			}', "\n";
+   print '			else {				', "\n";
    print '				errorFound = true;', "\n";
-   print '				SPLAPPLOG(L_ERROR, error, "MongoDB Insert");', "\n";
+   print '				SPLAPPLOG(L_ERROR, errorMsg, "MongoDB Insert");', "\n";
    print '				if(!otuplePtr){', "\n";
    print '					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());', "\n";
    print '				}', "\n";
@@ -218,6 +221,34 @@ sub main::generate($$) {
    	}
    print "\n";
    print '	if(errorFound) submit(*otuplePtr, 0);', "\n";
+   print '}', "\n";
+   print "\n";
+   print '// static thread_specific_ptr initialization', "\n";
+   print 'streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR_SCOPE::MY_OPERATOR::connPtr_;', "\n";
+   print "\n";
+   print 'DBClientConnection * MY_OPERATOR_SCOPE::MY_OPERATOR::getDBClientConnection(const string& dbHost, uint32_t dbPort) {', "\n";
+   print '	DBClientConnection * connPtr = connPtr_.get();', "\n";
+   print '	if(!connPtr) {', "\n";
+   print '		connPtr_.reset(new DBClientConnection(';
+   print $autoReconnect;
+   print ', 0, (double)';
+   print $timeout;
+   print '));', "\n";
+   print '		connPtr = connPtr_.get();', "\n";
+   print "\n";
+   print '		try {', "\n";
+   print '			connPtr->connect(buildConnUrl(dbHost, dbPort));', "\n";
+   print '		}', "\n";
+   print '		catch( const DBException &e ) {', "\n";
+   print '			if (';
+   print $autoReconnect;
+   print ')', "\n";
+   print '				SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");', "\n";
+   print '			else', "\n";
+   print '				THROW(SPL::SPLRuntimeOperator, e.what());', "\n";
+   print '		}', "\n";
+   print '	}', "\n";
+   print '	return connPtr;', "\n";
    print '}', "\n";
    print "\n";
    SPL::CodeGen::implementationEpilogue($model);

@@ -33,6 +33,20 @@ namespace mongo {
         return *this;
     }
 
+#if __cplusplus >= 201103L
+    inline Status::Status(Status&& other) noexcept
+        : _error(other._error) {
+        other._error = nullptr;
+    }
+
+    inline Status& Status::operator=(Status&& other) noexcept {
+        unref(_error);
+        _error = other._error;
+        other._error = nullptr;
+        return *this;
+    }
+#endif // __cplusplus >= 201103L
+
     inline Status::~Status() {
         unref(_error);
     }
@@ -75,11 +89,11 @@ namespace mongo {
             delete error;
     }
 
-    inline bool operator==(const ErrorCodes::Error lhs, const Status& rhs) {
+    inline bool MONGO_CLIENT_FUNC operator==(const ErrorCodes::Error lhs, const Status& rhs) {
         return rhs == lhs;
     }
 
-    inline bool operator!=(const ErrorCodes::Error lhs, const Status& rhs) {
+    inline bool MONGO_CLIENT_FUNC operator!=(const ErrorCodes::Error lhs, const Status& rhs) {
         return rhs != lhs;
     }
 

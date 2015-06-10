@@ -17,13 +17,14 @@
 
 #pragma once
 
+#include "mongo/config.h"
+
 #include <stdio.h>
 
 #ifndef _WIN32
 
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 #include <errno.h>
 
@@ -33,7 +34,7 @@
 
 #endif // not _WIN32
 
-#include <boost/scoped_ptr.hpp>
+#include <streams_boost/scoped_ptr.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,6 +59,8 @@ namespace mongo {
 
     void disableNagle(int sock);
 
+    void shutdownNetworking();
+
 #if defined(_WIN32)
 
     typedef short sa_family_t;
@@ -77,8 +80,6 @@ namespace mongo {
 
 #endif // _WIN32
 
-    std::string makeUnixSockPath(int port);
-
     // If an ip address is passed in, just return that.  If a hostname is passed
     // in, look up its ip and return that.  Returns "" on failure.
     std::string hostbyname(const char *hostname);
@@ -90,12 +91,8 @@ namespace mongo {
     /**
      * wrapped around os representation of network address
      */
-    struct SockAddr {
-        SockAddr() {
-            addressSize = sizeof(sa);
-            memset(&sa, 0, sizeof(sa));
-            sa.ss_family = AF_UNSPEC;
-        }
+    struct MONGO_CLIENT_API SockAddr {
+        SockAddr();
         explicit SockAddr(int sourcePort); /* listener side */
         SockAddr(const char *ip, int port); /* EndPoint (remote) side, or if you want to specify which interface locally */
 
@@ -103,6 +100,8 @@ namespace mongo {
         template <typename T> const T& as() const { return *(const T*)(&sa); }
         
         std::string toString(bool includePort=true) const;
+
+        bool isValid() const { return _isValid; }
 
         /** 
          * @return one of AF_INET, AF_INET6, or AF_UNIX
@@ -127,23 +126,18 @@ namespace mongo {
         socklen_t addressSize;
     private:
         struct sockaddr_storage sa;
+        bool _isValid;
     };
 
     extern SockAddr unknownAddress; // ( "0.0.0.0", 0 )
 
     /** this is not cache and does a syscall */
     std::string getHostName();
-    
-    /** this is cached, so if changes during the process lifetime
-     * will be stale */
-    std::string getHostNameCached();
-
-    std::string prettyHostName();
 
     /**
      * thrown by Socket and SockAddr
      */
-    class SocketException : public DBException {
+    class MONGO_CLIENT_API SocketException : public DBException {
     public:
         const enum Type { CLOSED , RECV_ERROR , SEND_ERROR, RECV_TIMEOUT, SEND_TIMEOUT, FAILED_STATE, CONNECT_ERROR } _type;
         
@@ -202,7 +196,16 @@ namespace mongo {
 
         ~Socket();
 
+        /** The correct way to initialize and connect to a socket is as follows: (1) construct the
+         *  SockAddr, (2) check whether the SockAddr isValid(), (3) if the SockAddr is valid, a
+         *  Socket may then try to connect to that SockAddr. It is critical to check the return
+         *  value of connect as a false return indicates that there was an error, and the Socket
+         *  failed to connect to the given SockAddr. This failure may be due to ConnectBG returning
+         *  an error, or due to a timeout on connection, or due to the system socket deciding the
+         *  socket is invalid.
+         */
         bool connect(SockAddr& farEnd);
+
         void close();
         void send( const char * data , int len, const char *context );
         void send( const std::vector< std::pair< char *, int > > &data, const char *context );

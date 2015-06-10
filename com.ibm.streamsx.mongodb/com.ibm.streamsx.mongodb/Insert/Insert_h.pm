@@ -1,6 +1,6 @@
 
 package Insert_h;
-use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::Window; 
+use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Annotation; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeEvaluator; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::TupleValue; use SPL::Operator::Instance::Window; 
 sub main::generate($$) {
    my ($xml, $signature) = @_;  
    print "// $$signature\n";
@@ -9,16 +9,16 @@ sub main::generate($$) {
    $SPL::CodeGenHelper::verboseMode = $model->getContext()->isVerboseModeOn();
    print '#include <SPL/Runtime/Operator/OperatorMetrics.h>', "\n";
    print '#include <streams_boost/shared_ptr.hpp>', "\n";
+   print '#include <streams_boost/thread/tss.hpp>', "\n";
    print '#include <streams_boost/typeof/typeof.hpp>', "\n";
    print '#include <streams_boost/foreach.hpp>', "\n";
    print '#define foreach STREAMS_BOOST_FOREACH', "\n";
    print "\n";
-   print 'namespace boost = streams_boost;', "\n";
-   print "\n";
-   print '#include "mongo/client/dbclient.h"', "\n";
+   print '#include "Mongo.h"', "\n";
    print "\n";
    print 'using std::string;', "\n";
    print 'using streams_boost::shared_ptr;', "\n";
+   print "\n";
    print 'using namespace mongo;', "\n";
    print "\n";
    SPL::CodeGen::headerPrologue($model);
@@ -44,10 +44,13 @@ sub main::generate($$) {
    print '	void process(Tuple const & tuple, uint32_t port);', "\n";
    print "\n";
    print 'private:', "\n";
-   print '	Metric & dcpsMetric_;', "\n";
+   print '	Metric & nInsertsMetric_;', "\n";
    print "\n";
    print '	string buildConnUrl(const string& dbHost, uint32_t dbPort);', "\n";
    print '	string buildDbCollection(const string& db, const string& collection);', "\n";
+   print "\n";
+   print '	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;', "\n";
+   print '	DBClientConnection * getDBClientConnection(const string& dbHost, uint32_t dbPort);', "\n";
    print '};', "\n";
    print "\n";
    SPL::CodeGen::headerEpilogue($model);

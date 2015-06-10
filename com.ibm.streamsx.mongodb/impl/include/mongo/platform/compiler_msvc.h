@@ -41,3 +41,8 @@
 #else
 #define MONGO_COMPILER_API_CALLING_CONVENTION
 #endif
+
+#define MONGO_COMPILER_API_DEPRECATED(MSG) __declspec( deprecated( MSG ) )
+
+#define MONGO_likely(x) bool(x)
+#define MONGO_unlikely(x) bool(x)

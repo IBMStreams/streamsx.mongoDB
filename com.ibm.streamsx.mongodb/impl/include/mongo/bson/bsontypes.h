@@ -19,8 +19,6 @@
 
 #include "mongo/util/assert_util.h"
 
-namespace bson { }
-
 namespace mongo {
 
     class BSONArrayBuilder;
@@ -30,12 +28,8 @@ namespace mongo {
     class BSONObjBuilderValueStream;
     class BSONObjIterator;
     class Ordering;
-    class Record;
     struct BSONArray; // empty subclass of BSONObj useful for overloading
     struct BSONElementCmpWithoutField;
-
-    extern BSONObj maxKey;
-    extern BSONObj minKey;
 
     /**
         the complete list of valid BSON types
@@ -90,7 +84,6 @@ namespace mongo {
 
     /**
      * returns the name of the argument's type
-     * defined in jsobj.cpp
      */
     const char* typeName (BSONType type);
 
@@ -141,8 +134,9 @@ namespace mongo {
         case mongo::Bool:
             return 40;
         case mongo::Date:
-        case Timestamp:
             return 45;
+        case Timestamp:
+            return 47;
         case RegEx:
             return 50;
         case DBRef:

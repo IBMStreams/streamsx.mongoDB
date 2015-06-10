@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <boost/scoped_ptr.hpp>
+#include <streams_boost/scoped_ptr.hpp>
 #include <memory>
 #include <string>
 #include <vector>

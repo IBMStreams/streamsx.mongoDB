@@ -4,9 +4,9 @@
 #include <streams_boost/foreach.hpp>
 #define foreach STREAMS_BOOST_FOREACH
 
-namespace boost = streams_boost;
+#include "Mongo.h"
 
-#include "mongo/client/dbclient.h"
+using std::string;
 
 using namespace mongo;
 
@@ -32,10 +32,13 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
-	Metric & dcpsMetric_;
+	Metric & nQueriesMetric_;
 
 	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;
 	OPort0Type * getOutputTuple();
+
+	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
+	DBClientConnection * getDBClientConnection(const string& dbHost, uint32_t dbPort);
 	
 	BSONObj findFieldsBO_;
 	BSONObj buildFindFieldsBO();

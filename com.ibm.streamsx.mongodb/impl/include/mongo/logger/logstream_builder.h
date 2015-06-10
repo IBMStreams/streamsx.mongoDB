@@ -15,16 +15,15 @@
 
 #pragma once
 
-#include <boost/scoped_ptr.hpp>
-#include <iostream>
+#include <streams_boost/scoped_ptr.hpp>
 #include <sstream>
 #include <string>
 
 #include "mongo/client/export_macros.h"
 #include "mongo/logger/labeled_level.h"
+#include "mongo/logger/log_component.h"
 #include "mongo/logger/log_severity.h"
 #include "mongo/logger/message_log_domain.h"
-#include "mongo/util/exit_code.h"
 
 namespace mongo {
 namespace logger {
@@ -36,19 +35,31 @@ namespace logger {
      */
     class MONGO_CLIENT_API LogstreamBuilder {
     public:
-        static LogSeverity severityCast(int ll) { return LogSeverity::cast(ll); }
-        static LogSeverity severityCast(LogSeverity ls) { return ls; }
-        static LabeledLevel severityCast(const LabeledLevel &labeled) { return labeled; }
+        static LogSeverity MONGO_CLIENT_FUNC severityCast(int ll) { return LogSeverity::cast(ll); }
+        static LogSeverity MONGO_CLIENT_FUNC severityCast(LogSeverity ls) { return ls; }
+        static LabeledLevel MONGO_CLIENT_FUNC severityCast(const LabeledLevel &labeled) { return labeled; }
 
         /**
          * Construct a LogstreamBuilder that writes to "domain" on destruction.
          *
          * "contextName" is a short name of the thread or other context.
-         * "severity" is the logging priority/severity of the message.
+         * "severity" is the logging severity of the message.
          */
         LogstreamBuilder(MessageLogDomain* domain,
                          const std::string& contextName,
                          LogSeverity severity);
+
+        /**
+         * Construct a LogstreamBuilder that writes to "domain" on destruction.
+         *
+         * "contextName" is a short name of the thread or other context.
+         * "severity" is the logging severity of the message.
+         * "component" is the primary log component of the message.
+         */
+        LogstreamBuilder(MessageLogDomain* domain,
+                         const std::string& contextName,
+                         LogSeverity severity,
+                         LogComponent component);
 
         /**
          * Deprecated.
@@ -89,7 +100,6 @@ namespace logger {
         LogstreamBuilder& operator<<(char *x) { stream() << x; return *this; }
         LogstreamBuilder& operator<<(char x) { stream() << x; return *this; }
         LogstreamBuilder& operator<<(int x) { stream() << x; return *this; }
-        LogstreamBuilder& operator<<(ExitCode x) { stream() << x; return *this; }
         LogstreamBuilder& operator<<(long x) { stream() << x; return *this; }
         LogstreamBuilder& operator<<(unsigned long x) { stream() << x; return *this; }
         LogstreamBuilder& operator<<(unsigned x) { stream() << x; return *this; }
@@ -107,11 +117,11 @@ namespace logger {
             return *this;
         }
 
-        LogstreamBuilder& operator<< (std::ostream& ( *manip )(std::ostream&)) {
+        LogstreamBuilder& operator<< (std::ostream& ( MONGO_CLIENT_FUNC *manip )(std::ostream&)) {
             stream() << manip;
             return *this;
         }
-        LogstreamBuilder& operator<< (std::ios_base& (*manip)(std::ios_base&)) {
+        LogstreamBuilder& operator<< (std::ios_base& ( MONGO_CLIENT_FUNC *manip)(std::ios_base&)) {
             stream() << manip;
             return *this;
         }
@@ -130,6 +140,7 @@ namespace logger {
         MessageLogDomain* _domain;
         std::string _contextName;
         LogSeverity _severity;
+        LogComponent _component;
         std::string _baseMessage;
         std::ostringstream* _os;
         Tee* _tee;

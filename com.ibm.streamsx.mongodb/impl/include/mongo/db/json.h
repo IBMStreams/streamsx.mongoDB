@@ -36,10 +36,53 @@ namespace mongo {
      * @throws MsgAssertionException if parsing fails.  The message included with
      * this assertion includes the character offset where parsing failed.
      */
-    MONGO_CLIENT_API BSONObj fromjson(const std::string& str);
+    MONGO_CLIENT_API BSONObj MONGO_CLIENT_FUNC fromjson(const std::string& str);
 
     /** @param len will be size of JSON object in text chars. */
-    MONGO_CLIENT_API BSONObj fromjson(const char* str, int* len=NULL);
+    MONGO_CLIENT_API BSONObj MONGO_CLIENT_FUNC fromjson(const char* str, int* len=NULL);
+
+    /**
+     * Tests whether the JSON string is an Array.
+     *
+     * Useful for assigning the result of fromjson to the right object type. Either:
+     *  BSONObj
+     *  BSONArray
+     *
+     * Example: Using the method to select the proper type.
+     *
+     *  If this method returns true, the user could store the result of fromjson
+     *  inside a BSONArray, rather than a BSONObj, in order to have it print as an
+     *  array when passed to tojson.
+     *
+     * @param obj The JSON string to test.
+     */
+    MONGO_CLIENT_API bool isArray(const StringData& str);
+
+    /**
+     * Convert a BSONArray to a JSON string.
+     *
+     * @param arr The BSON Array.
+     * @param format The JSON format (JS, TenGen, Strict).
+     * @param pretty Enables pretty output.
+     */
+    MONGO_CLIENT_API std::string tojson(
+        const BSONArray& arr,
+        JsonStringFormat format = Strict,
+        bool pretty = false
+    );
+
+    /**
+     * Convert a BSONObj to a JSON string.
+     *
+     * @param obj The BSON Object.
+     * @param format The JSON format (JS, TenGen, Strict).
+     * @param pretty Enables pretty output.
+     */
+    MONGO_CLIENT_API std::string tojson(
+        const BSONObj& obj,
+        JsonStringFormat format = Strict,
+        bool pretty = false
+    );
 
     /**
      * Parser class.  A BSONObj is constructed incrementally by passing a
@@ -48,7 +91,7 @@ namespace mongo {
      */
     class JParse {
         public:
-            explicit JParse(const char*);
+            explicit JParse(const StringData& str);
 
             /*
              * Notation: All-uppercase symbols denote non-terminals; all other
@@ -106,10 +149,14 @@ namespace mongo {
              *   | REFOBJECT
              *   | UNDEFINEDOBJECT
              *   | NUMBERLONGOBJECT
+             *   | MINKEYOBJECT
+             *   | MAXKEYOBJECT
              *
              */
         public:
             Status object(const StringData& fieldName, BSONObjBuilder&, bool subObj=true);
+            Status parse(BSONObjBuilder& builder);
+            bool isArray();
 
         private:
             /* The following functions are called with the '{' and the first
@@ -175,6 +222,18 @@ namespace mongo {
             Status numberLongObject(const StringData& fieldName, BSONObjBuilder&);
 
             /*
+             * MINKEYOBJECT :
+             *     { FIELD("$minKey") : 1 }
+             */
+            Status minKeyObject(const StringData& fieldName, BSONObjBuilder& builder);
+
+            /*
+             * MAXKEYOBJECT :
+             *     { FIELD("$maxKey") : 1 }
+             */
+            Status maxKeyObject(const StringData& fieldName, BSONObjBuilder& builder);
+
+            /*
              * ARRAY :
              *     []
              *   | [ ELEMENTS ]
@@ -183,7 +242,7 @@ namespace mongo {
              *     VALUE
              *   | VALUE , ELEMENTS
              */
-            Status array(const StringData& fieldName, BSONObjBuilder&);
+            Status array(const StringData& fieldName, BSONObjBuilder&, bool subObj=true);
 
             /*
              * NOTE: Currently only Date can be preceded by the "new" keyword
