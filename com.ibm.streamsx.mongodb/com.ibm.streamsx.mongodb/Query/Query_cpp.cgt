@@ -15,8 +15,8 @@
 
 	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
 	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
-	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a map or a tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
-		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()));
+	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a string, map or tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
+		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
 
 	my $nToReturn = ($_ = $model->getParameterByName('nToReturn')) ? $_->getValueAt(0)->getCppExpression() : 0;
 	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
@@ -43,7 +43,7 @@ string MY_OPERATOR::buildDbCollection(const string& db, const string& collection
 }
 
 BSONObj MY_OPERATOR::buildFindFieldsBO() {
-<%if (defined $findFieldsExpr && (not $findFieldsExpr->hasStreamAttributes())) {
+<%if (defined $findFieldsExpr) {
 	BSONCommon::buildBSONObject($findFieldsExpr->getSourceLocation(), $findFieldsExpr->getCppExpression(), $findFieldsExpr->getSPLType(), 0);%>
 	return b0.obj();
 <%}
@@ -53,17 +53,53 @@ else {%>
 }
 
 BSONObj MY_OPERATOR::buildFindQueryBO() {
-<%if (defined $findQueryExpr && (not $findQueryExpr->hasStreamAttributes())) {
-	BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
-	return b0.obj();
-<%}
+<%if (defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) {
+	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {%>
+	 try {
+		 return fromjson(<%=$findQueryExpr->getCppExpression()%>.c_str());
+	 }
+	 catch(MsgAssertionException e) {
+		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());
+	 }
+	<%}
+	else {
+	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+	 return b0.obj();
+	<%}
+}
 else {%>
-	return BSONObj();
+	 return BSONObj();
+<%}%>
+}
+
+BSONObj MY_OPERATOR::buildFindQueryBO(Tuple const & tuple) {
+	
+<%for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {%>
+  IPort<%=$i%>Type const & <%=$model->getInputPortAt($i)->getCppTupleName()%> = static_cast<IPort<%=$i%>Type const&>(tuple);
+<%}%>
+	
+<%if (defined $findQueryExpr) {
+	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {%>
+	 try {
+		 return fromjson(<%=$findQueryExpr->getCppExpression()%>.c_str());
+	 }
+	 catch(MsgAssertionException e) {
+		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());
+	 }
+	<%}
+	else {
+	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+	 return b0.obj();
+	<%}
+}
+else {%>
+	 return BSONObj();
 <%}%>
 }
 
 MY_OPERATOR::MY_OPERATOR() : nQueriesMetric_(getContext().getMetrics().getCustomMetricByName("nQueries")),
-							 findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {
+							 findFieldsBO_(<%=((defined $findFieldsExpr && not $findFieldsExpr->hasStreamAttributes()) ? 'buildFindFieldsBO()' : 'BSONObj()')%>),
+							 findQueryBO_(<%=((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()')%>) {
 
 	if(!MongoInit<void>::status_.isOK()) {
 		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");
@@ -118,7 +154,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	<%}%>
 
 	<%if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
-		const BSONObj & findQueryBO = buildFindQueryBO();
+		const BSONObj & findQueryBO = buildFindQueryBO(tuple);
 	<%}
 	else {%>
 		const BSONObj & findQueryBO = findQueryBO_;

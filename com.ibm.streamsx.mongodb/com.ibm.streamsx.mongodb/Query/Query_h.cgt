@@ -45,6 +45,7 @@ private:
 
 	BSONObj findQueryBO_;
 	BSONObj buildFindQueryBO();
+	BSONObj buildFindQueryBO(Tuple const & tuple);
 
 	string buildConnUrl(const string& dbHost, uint32_t dbPort);
 	string buildDbCollection(const string& db, const string& collection);

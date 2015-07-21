@@ -24,8 +24,8 @@ sub main::generate($$) {
    
    	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
    	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
-   	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a map or a tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
-   		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()));
+   	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a string, map or tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
+   		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
    
    	my $nToReturn = ($_ = $model->getParameterByName('nToReturn')) ? $_->getValueAt(0)->getCppExpression() : 0;
    	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
@@ -52,7 +52,7 @@ sub main::generate($$) {
    print '}', "\n";
    print "\n";
    print 'BSONObj MY_OPERATOR_SCOPE::MY_OPERATOR::buildFindFieldsBO() {', "\n";
-   if (defined $findFieldsExpr && (not $findFieldsExpr->hasStreamAttributes())) {
+   if (defined $findFieldsExpr) {
    	BSONCommon::buildBSONObject($findFieldsExpr->getSourceLocation(), $findFieldsExpr->getCppExpression(), $findFieldsExpr->getSPLType(), 0);
    print "\n";
    print '	return b0.obj();', "\n";
@@ -65,20 +65,81 @@ sub main::generate($$) {
    print '}', "\n";
    print "\n";
    print 'BSONObj MY_OPERATOR_SCOPE::MY_OPERATOR::buildFindQueryBO() {', "\n";
-   if (defined $findQueryExpr && (not $findQueryExpr->hasStreamAttributes())) {
-   	BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);
+   if (defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) {
+   	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {
    print "\n";
-   print '	return b0.obj();', "\n";
+   print '	 try {', "\n";
+   print '		 return fromjson(';
+   print $findQueryExpr->getCppExpression();
+   print '.c_str());', "\n";
+   print '	 }', "\n";
+   print '	 catch(MsgAssertionException e) {', "\n";
+   print '		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());', "\n";
+   print '	 }', "\n";
+   print '	';
+   }
+   	else {
+   	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);
+   print "\n";
+   print '	 return b0.obj();', "\n";
+   print '	';
+   }
    }
    else {
    print "\n";
-   print '	return BSONObj();', "\n";
+   print '	 return BSONObj();', "\n";
+   }
+   print "\n";
+   print '}', "\n";
+   print "\n";
+   print 'BSONObj MY_OPERATOR_SCOPE::MY_OPERATOR::buildFindQueryBO(Tuple const & tuple) {', "\n";
+   print '	', "\n";
+   for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
+   print "\n";
+   print '  IPort';
+   print $i;
+   print 'Type const & ';
+   print $model->getInputPortAt($i)->getCppTupleName();
+   print ' = static_cast<IPort';
+   print $i;
+   print 'Type const&>(tuple);', "\n";
+   }
+   print "\n";
+   print '	', "\n";
+   if (defined $findQueryExpr) {
+   	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {
+   print "\n";
+   print '	 try {', "\n";
+   print '		 return fromjson(';
+   print $findQueryExpr->getCppExpression();
+   print '.c_str());', "\n";
+   print '	 }', "\n";
+   print '	 catch(MsgAssertionException e) {', "\n";
+   print '		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());', "\n";
+   print '	 }', "\n";
+   print '	';
+   }
+   	else {
+   	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);
+   print "\n";
+   print '	 return b0.obj();', "\n";
+   print '	';
+   }
+   }
+   else {
+   print "\n";
+   print '	 return BSONObj();', "\n";
    }
    print "\n";
    print '}', "\n";
    print "\n";
    print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : nQueriesMetric_(getContext().getMetrics().getCustomMetricByName("nQueries")),', "\n";
-   print '							 findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {', "\n";
+   print '							 findFieldsBO_(';
+   print ((defined $findFieldsExpr && not $findFieldsExpr->hasStreamAttributes()) ? 'buildFindFieldsBO()' : 'BSONObj()');
+   print '),', "\n";
+   print '							 findQueryBO_(';
+   print ((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()');
+   print ') {', "\n";
    print "\n";
    print '	if(!MongoInit<void>::status_.isOK()) {', "\n";
    print '		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");', "\n";
@@ -171,7 +232,7 @@ sub main::generate($$) {
    print '	';
    if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {
    print "\n";
-   print '		const BSONObj & findQueryBO = buildFindQueryBO();', "\n";
+   print '		const BSONObj & findQueryBO = buildFindQueryBO(tuple);', "\n";
    print '	';
    }
    	else {

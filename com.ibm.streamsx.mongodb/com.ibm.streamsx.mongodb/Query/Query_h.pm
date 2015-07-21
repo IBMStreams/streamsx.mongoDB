@@ -55,6 +55,7 @@ sub main::generate($$) {
    print "\n";
    print '	BSONObj findQueryBO_;', "\n";
    print '	BSONObj buildFindQueryBO();', "\n";
+   print '	BSONObj buildFindQueryBO(Tuple const & tuple);', "\n";
    print "\n";
    print '	string buildConnUrl(const string& dbHost, uint32_t dbPort);', "\n";
    print '	string buildDbCollection(const string& db, const string& collection);', "\n";
