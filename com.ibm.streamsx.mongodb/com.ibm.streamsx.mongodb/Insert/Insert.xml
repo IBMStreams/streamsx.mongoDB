@@ -4,7 +4,7 @@
     <context>
       <description>
 Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
-The operator uses db connection pool and supports multiple threads.
+The operator supports multiple threads.
 
 Insert has one custom output function:
 * InsertDocument writes data (any SPL expression) with or without a specified root tag.
