@@ -285,9 +285,9 @@ sub handleEnum {
 my ($seq, $valueType) = @_;
 
 print qq(
-	if(be$seq.type() == String) {
+	if(be$seq.type() == String && attr$seq.isValidValue(be$seq.str())) {
 		try {
-			attr$seq = spl_cast<$valueType,string>::cast( be$seq.str());
+			attr$seq = be$seq.str();
 			valueApplied = true;
 	    }
 	    catch (...) {}

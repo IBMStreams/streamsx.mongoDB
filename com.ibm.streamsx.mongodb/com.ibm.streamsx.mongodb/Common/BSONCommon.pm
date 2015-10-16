@@ -118,8 +118,7 @@ sub handlePrimitive(@) {
 		return "spl_cast<float64,$valueType>::cast($value)";
 	}
 	elsif(SPL::CodeGen::Type::isEnum($valueType)) {
-		SPL::CodeGen::warnln("The enum type will be converted to string.", $exprLocation);
-		return "spl_cast<rstring,$valueType>::cast($value)";
+		return "$value.getValue()";
 	}
 	elsif(SPL::CodeGen::Type::isInt64($valueType) || SPL::CodeGen::Type::isUint64($valueType)) {
 		return "static_cast<long long>($value)";
