@@ -369,11 +369,11 @@ my ($seq) = @_;
 
 print qq(
 	if(be$seq.type() == Date) {
-		attr$seq = createTimestamp( be$seq.date().asInt64(), 0);
+		attr$seq = SPL::Functions::Time::createTimestamp( be$seq.date().asInt64(), 0);
 		valueApplied = true;
 	}
 	else if(be$seq.type() == Timestamp) {
-		attr$seq = createTimestamp( be$seq.timestampTime().asInt64(), 0);
+		attr$seq = SPL::Functions::Time::createTimestamp( be$seq.timestampTime().asInt64(), 0);
 		valueApplied = true;
 	}
 );
