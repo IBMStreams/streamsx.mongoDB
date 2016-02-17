@@ -124,7 +124,7 @@ sub handlePrimitive(@) {
 		return "static_cast<long long>($value)";
 	}
 	elsif(SPL::CodeGen::Type::isTimestamp($valueType)) {
-		return "Date_t(static_cast<long long>($value.getSeconds()) * 1000)";
+		return "Date_t(static_cast<long long>($value.getSeconds() * 1000 + $value.getNanoseconds() / 1000000))";
 	}
 	elsif(SPL::CodeGen::Type::isUString($valueType)) {
 		return "spl_cast<rstring,ustring>::cast($value)";
