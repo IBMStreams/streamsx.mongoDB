@@ -287,7 +287,7 @@ my ($seq, $valueType) = @_;
 print qq(
 	if(be$seq.type() == String) {
 		try {
-			attr$seq = spl_cast<$valueType,string>::cast( be$seq.str());
+			attr$seq = be$seq.str();
 			valueApplied = true;
 	    }
 	    catch (...) {}
