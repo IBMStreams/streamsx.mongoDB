@@ -61,6 +61,21 @@ else {%>
 <%}%>
 }
 
+BSONObj MY_OPERATOR::buildFindQueryBO(Tuple const & tuple) {
+	
+<%for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {%>
+  IPort<%=$i%>Type const & <%=$model->getInputPortAt($i)->getCppTupleName()%> = static_cast<IPort<%=$i%>Type const&>(tuple);
+<%}%>
+	
+<%if (defined $findQueryExpr) {
+	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+	 return b0.obj();
+<%}
+else {%>
+	 return BSONObj();
+<%}%>
+}
+
 MY_OPERATOR::MY_OPERATOR() : dcpsMetric_(getContext().getMetrics().getCustomMetricByName("dbConnectionPoolSize")),
 							 findFieldsBO_(buildFindFieldsBO()), findQueryBO_(buildFindQueryBO()) {
 
@@ -118,7 +133,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	<%}%>
 
 	<%if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
-		const BSONObj & findQueryBO = buildFindQueryBO();
+		const BSONObj & findQueryBO = buildFindQueryBO(tuple);
 	<%}
 	else {%>
 		const BSONObj & findQueryBO = findQueryBO_;

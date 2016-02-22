@@ -29,7 +29,7 @@ Below a table for BSON/SPL conversion:
 **Third-party libraries**
 * This toolkit embeds mongodb headers/libraries under impl/&lt;include|lib>.
    </info:description>
-    <info:version>1.0.0.1</info:version>
+    <info:version>1.0.0.2</info:version>
     <info:requiredProductVersion>3.1.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies/>
