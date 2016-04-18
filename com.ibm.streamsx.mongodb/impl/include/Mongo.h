@@ -1,5 +1,4 @@
-#ifndef MONGO_H
-#define MONGO_H
+#pragma once
 
 #define BOOST_PP_CAT STREAMS_BOOST_PP_CAT
 #define BOOST_VERSION STREAMS_BOOST_VERSION
@@ -8,5 +7,3 @@
 namespace boost = streams_boost;
 
 #include "mongo/client/dbclient.h"
-
-#endif

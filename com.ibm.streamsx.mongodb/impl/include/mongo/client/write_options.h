@@ -17,32 +17,40 @@
 
 namespace mongo {
 
-    enum UpdateOptions {
-        /** Upsert - that is, insert the item if no matching item is found. */
-        UpdateOption_Upsert = 1 << 0,
+enum UpdateOptions {
+    /** Upsert - that is, insert the item if no matching item is found. */
+    UpdateOption_Upsert = 1 << 0,
 
-        /** Update multiple documents (if multiple documents match query expression).
-           (Default is update a single document and stop.) */
-        UpdateOption_Multi = 1 << 1,
+    /** Update multiple documents (if multiple documents match query expression).
+       (Default is update a single document and stop.) */
+    UpdateOption_Multi = 1 << 1,
 
-        /** flag from mongo saying this update went everywhere */
-        UpdateOption_Broadcast = 1 << 2
-    };
+    /** flag from mongo saying this update went everywhere */
+    UpdateOption_Broadcast = 1 << 2,
 
-    enum RemoveOptions {
-        /** only delete one option */
-        RemoveOption_JustOne = 1 << 0,
+    // TODO: upsert, and multi are per item in a batch, this is for the whole batch
+    /** Disables document validation for this operation. */
+    UpdateOption_BypassDocumentValidation = 1 << 3
+};
 
-        /** flag from mongo saying this update went everywhere */
-        RemoveOption_Broadcast = 1 << 1
-    };
+enum RemoveOptions {
+    /** only delete one option */
+    RemoveOption_JustOne = 1 << 0,
 
-    /**
-     * need to put in DbMesssage::ReservedOptions as well
-     */
-    enum InsertOptions {
-        /** With muli-insert keep processing inserts if one fails */
-        InsertOption_ContinueOnError = 1 << 0
-    };
+    /** flag from mongo saying this update went everywhere */
+    RemoveOption_Broadcast = 1 << 1
+};
 
-} // namespace mongo
+/**
+ * need to put in DbMesssage::ReservedOptions as well
+ */
+enum InsertOptions {
+    /** With muli-insert keep processing inserts if one fails */
+    InsertOption_ContinueOnError = 1 << 0,
+
+    /** Disables document validation for this operation. */
+    InsertOption_BypassDocumentValidation = 1 << 1
+
+};
+
+}  // namespace mongo

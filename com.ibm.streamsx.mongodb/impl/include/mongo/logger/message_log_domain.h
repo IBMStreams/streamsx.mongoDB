@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <streams_boost/scoped_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <memory>
 #include <string>
 #include <vector>
@@ -26,7 +26,7 @@
 namespace mongo {
 namespace logger {
 
-    typedef LogDomain<MessageEventEphemeral> MessageLogDomain;
+typedef LogDomain<MessageEventEphemeral> MessageLogDomain;
 
 }  // namespace logger
 }  // namespace mongo

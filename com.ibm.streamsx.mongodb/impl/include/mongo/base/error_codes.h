@@ -151,6 +151,7 @@ namespace mongo {
             CommandNotSupported = 115,
             DocTooLargeForCapped = 116,
             ConflictingOperationInProgress = 117,
+            OplogStartMissing = 120,
             NotMaster = 10107,
             DuplicateKey = 11000,
             InterruptedAtShutdown = 11600,

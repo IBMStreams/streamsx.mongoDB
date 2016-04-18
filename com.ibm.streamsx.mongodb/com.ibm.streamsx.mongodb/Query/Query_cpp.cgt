@@ -7,9 +7,21 @@
 	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
 	require BSONCommon;
 
+	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
 	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
 	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
+	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
+	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
 
+	unless ($authentication) {
+		if ($username && !$password) {
+			SPL::CodeGen::errorln("Password should be provided whithin username parameter", $model->getParameterByName('username')->getSourceLocation());
+		}
+		elsif (!$username && $password) {
+			SPL::CodeGen::errorln("Username should be provided whithin password parameter", $model->getParameterByName('password')->getSourceLocation());
+		}
+	}
+	
 	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
 	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
 
@@ -258,8 +270,19 @@ DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& dbHost, ui
 		connPtr_.reset(new DBClientConnection(<%=$autoReconnect%>, 0, (double)<%=$timeout%>));
 		connPtr = connPtr_.get();
 
+		std::string errmsg;
 		try {
 			connPtr->connect(buildConnUrl(dbHost, dbPort));
+			
+			<%if ($authentication) {
+				BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);%>
+				connPtr->auth(b0.obj());
+			<%}
+			elsif ($username) {%>
+				if(!connPtr->auth("admin", <%=$username%>, <%=$password%>, errmsg)) {
+					throw DBException(errmsg, 9999);
+				}
+			<%}%>
 		}
 		catch( const DBException &e ) {
 			if (<%=$autoReconnect%>)

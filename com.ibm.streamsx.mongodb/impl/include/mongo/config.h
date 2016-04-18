@@ -28,10 +28,10 @@
 // #undef MONGO_HAVE_CXX11_ATOMICS
 
 // Define to 1 if GCC style __atomic functions are available
-// #undef MONGO_HAVE_GCC_ATOMIC_BUILTINS
+#define MONGO_HAVE_GCC_ATOMIC_BUILTINS 1
 
 // Define to 1 if GCC style __sync functions are available
-#define MONGO_HAVE_GCC_SYNC_BUILTINS 1
+// #undef MONGO_HAVE_GCC_SYNC_BUILTINS
 
 // Define to target byte order (1234 vs 4321)
 #define MONGO_BYTE_ORDER 1234
