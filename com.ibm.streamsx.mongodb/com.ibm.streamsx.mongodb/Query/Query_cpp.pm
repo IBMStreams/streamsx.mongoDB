@@ -16,6 +16,19 @@ sub main::generate($$) {
    	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
    	require BSONCommon;
    
+   	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
+   	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
+   	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
+   
+   	unless ($authentication) {
+   		if ($username && !$password) {
+   			SPL::CodeGen::errorln("Password should be provided whithin username parameter", $model->getParameterByName('username')->getSourceLocation());
+   		}
+   		elsif (!$username && $password) {
+   			SPL::CodeGen::errorln("Username should be provided whithin password parameter", $model->getParameterByName('password')->getSourceLocation());
+   		}
+   	}
+   
    	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
    	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
    
@@ -88,6 +101,8 @@ sub main::generate($$) {
    print "\n";
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::allPortsReady() {', "\n";
    print '	', "\n";
+   print '	std::string errmsg;', "\n";
+   print '	', "\n";
    print '	try {', "\n";
    print '		ScopedDbConnection conn(buildConnUrl(';
    print $dbHost;
@@ -100,6 +115,27 @@ sub main::generate($$) {
    print '			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");', "\n";
    print '		}', "\n";
    print '		dcpsMetric_.setValueNoLock(conn.getNumConnections());', "\n";
+   print '		', "\n";
+   print '		';
+   if ($authentication) {
+   			BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);
+   print "\n";
+   print '			conn->auth(b0.obj());', "\n";
+   print '		';
+   }
+   		elsif ($username) {
+   print "\n";
+   print '			if(!conn->auth("admin", ';
+   print $username;
+   print ', ';
+   print $password;
+   print ', errmsg)) {', "\n";
+   print '				throw DBException(errmsg, 9999);', "\n";
+   print '			}', "\n";
+   print '		';
+   }
+   print "\n";
+   print "\n";
    print '		conn.done();', "\n";
    print '	}', "\n";
    print '	catch( const DBException &e ) {', "\n";

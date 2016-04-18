@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="3.2.1.1" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-  <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="3.1.0" version="1.0.0">
+  <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="3.1.0" version="1.1.0">
     <description>
 Support for [http://www.mongodb.org|MongoDB] database.
 
@@ -30,11 +30,108 @@ Below a table for BSON/SPL conversion:
 * This toolkit embeds mongodb headers/libraries under impl/&lt;include|lib&gt;.
    </description>
     <uriTable>
+      <uri index="1" value="com.ibm.streamsx.mongodb/Types.spl"/>
       <uri index="2" value="com.ibm.streamsx.mongodb/Query"/>
-      <uri index="1" value="com.ibm.streamsx.mongodb/Insert"/>
+      <uri index="3" value="com.ibm.streamsx.mongodb/Insert"/>
     </uriTable>
     <namespace name="com.ibm.streamsx.mongodb">
-      <primitiveOp language="Cpp" modelUriIndex="1" name="Insert" public="true">
+      <primitiveOp language="Cpp" modelUriIndex="2" name="Query" public="true">
+        <description>
+Query reads SPL data from MongoDB collection. No predefined db schema is required, the data is automatically mapped from BSON to SPL.
+The operator uses db connection pool and supports multiple threads.
+
+Query has three custom output functions:
+* QueryDocumentField reads data from a fieldName as the output attribute name, with or without a specified search field tag.
+* QueryDocumentMultipleFields reads data under a fieldName as the output attribute name, with or without a specified search field tag..
+* QueryDocumentFieldAsJson reads the whole data as JSON string.
+
+Single input port is allowed.
+
+One output port is defined for use with custom output functions, multiple tuples maybe submitted per one query.
+      </description>
+        <customLiterals name="ProfilingLevel">
+          <value name="off"/>
+          <value name="slow"/>
+          <value name="all"/>
+        </customLiterals>
+        <outputFunctions name="MongoFS">
+          <function name="AsIs" returnType="T">
+            <description/>
+            <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
+            <parameter name="v" type="T"/>
+          </function>
+          <function name="QueryDocumentFieldAsJson" returnType="T">
+            <description>Reads document from 'db.coolection' as a JSON string. T can be of type rstring or ustring only.</description>
+            <prototype>&lt;string T&gt; T QueryDocumentFieldAsJson()</prototype>
+          </function>
+          <function name="QueryDocumentField" returnType="T">
+            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name.</description>
+            <prototype>&lt;any T&gt; T QueryDocumentField()</prototype>
+          </function>
+          <function name="QueryDocumentField" returnType="T">
+            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name, then for a findPath name.</description>
+            <prototype>&lt;any T&gt; T QueryDocumentField(rstring findPath)</prototype>
+            <parameter name="findPath" type="rstring"/>
+          </function>
+          <function name="QueryDocumentMultipleFields" returnType="T">
+            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name.</description>
+            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields()</prototype>
+          </function>
+          <function name="QueryDocumentMultipleFields" returnType="T">
+            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name, then for a findPath name.</description>
+            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields(rstring findPath)</prototype>
+            <parameter name="findPath" type="rstring"/>
+          </function>
+        </outputFunctions>
+        <parametersDescription/>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="authentication" optional="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>">
+          <description>The optional Authentication_t parameter specifies MongoDB authentication parameters.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="username" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="password" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="collection" optional="false" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB collection.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbName" optional="false" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB database.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
+          <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="findFields" optional="true" type="map&lt;rstring,int32>">
+          <description>The optional 'map&lt;rstring,int32&gt;' parameter specifies which fields to include or drop from the result.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="findQuery" optional="true" type="">
+          <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="nToReturn" optional="true" type="uint32">
+          <description>The optional 'uint32' parameter specifies max number of documents to fetch.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
+          <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
+          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        </parameter>
+        <inputPort maxNumPorts="1" minNumPorts="1" optional="false" windowPunctInputMode="Oblivious">
+          <description>The Query operator is configurable with a single input port. The input port is non-mutating and its punctuation mode is Oblivious.</description>
+          <windowPolicy>NonWindowed</windowPolicy>
+        </inputPort>
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
+          <description>The Query operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Generating.</description>
+        </outputPort>
+        <codeTemplate name="Query" template="stream&lt;${schema}> ${outputStream} = Query(${inputStream}) {&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;&quot;;&#xA;&#x9;&#x9;dbName : &quot;&quot;;&#xA;&#x9;&#x9;collection : &quot;&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;attr = QueryDocumentField();&#xA;}">
+          <description>Basic Query template</description>
+        </codeTemplate>
+      </primitiveOp>
+      <primitiveOp language="Cpp" modelUriIndex="3" name="Insert" public="true">
         <description>
 Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
 The operator uses db connection pool and supports multiple threads.
@@ -93,6 +190,15 @@ One output port is defined for use with custom output functions and optionally t
           </function>
         </outputFunctions>
         <parametersDescription/>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="authentication" optional="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>">
+          <description>The optional Authentication_t parameter specifies MongoDB authentication parameters.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="username" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="password" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        </parameter>
         <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
           <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
         </parameter>
@@ -116,93 +222,7 @@ One output port is defined for use with custom output functions and optionally t
           <description>Basic Insert template</description>
         </codeTemplate>
       </primitiveOp>
-      <primitiveOp language="Cpp" modelUriIndex="2" name="Query" public="true">
-        <description>
-Query reads SPL data from MongoDB collection. No predefined db schema is required, the data is automatically mapped from BSON to SPL.
-The operator uses db connection pool and supports multiple threads.
-
-Query has three custom output functions:
-* QueryDocumentField reads data from a fieldName as the output attribute name, with or without a specified search field tag.
-* QueryDocumentMultipleFields reads data under a fieldName as the output attribute name, with or without a specified search field tag..
-* QueryDocumentFieldAsJson reads the whole data as JSON string.
-
-Single input port is allowed.
-
-One output port is defined for use with custom output functions, multiple tuples maybe submitted per one query.
-      </description>
-        <customLiterals name="ProfilingLevel">
-          <value name="off"/>
-          <value name="slow"/>
-          <value name="all"/>
-        </customLiterals>
-        <outputFunctions name="MongoFS">
-          <function name="AsIs" returnType="T">
-            <description/>
-            <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
-            <parameter name="v" type="T"/>
-          </function>
-          <function name="QueryDocumentFieldAsJson" returnType="T">
-            <description>Reads document from 'db.coolection' as a JSON string. T can be of type rstring or ustring only.</description>
-            <prototype>&lt;string T&gt; T QueryDocumentFieldAsJson()</prototype>
-          </function>
-          <function name="QueryDocumentField" returnType="T">
-            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name.</description>
-            <prototype>&lt;any T&gt; T QueryDocumentField()</prototype>
-          </function>
-          <function name="QueryDocumentField" returnType="T">
-            <description>Reads document from 'db.coolection'. Searched for output assignment attribute name, then for a findPath name.</description>
-            <prototype>&lt;any T&gt; T QueryDocumentField(rstring findPath)</prototype>
-            <parameter name="findPath" type="rstring"/>
-          </function>
-          <function name="QueryDocumentMultipleFields" returnType="T">
-            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name.</description>
-            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields()</prototype>
-          </function>
-          <function name="QueryDocumentMultipleFields" returnType="T">
-            <description>Reads multiple documents from 'db.coolection'. Searched for all documents under output assignment attribute name, then for a findPath name.</description>
-            <prototype>&lt;any T&gt; T QueryDocumentMultipleFields(rstring findPath)</prototype>
-            <parameter name="findPath" type="rstring"/>
-          </function>
-        </outputFunctions>
-        <parametersDescription/>
-        <parameter cardinality="1" expressionMode="AttributeFree" name="collection" optional="false" type="rstring">
-          <description>The mandatory 'rstring' parameter specifies MongoDB collection.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="AttributeFree" name="dbName" optional="false" type="rstring">
-          <description>The mandatory 'rstring' parameter specifies MongoDB database.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
-          <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
-          <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="findFields" optional="true" type="map&lt;rstring,int32>">
-          <description>The optional 'map&lt;rstring,int32&gt;' parameter specifies which fields to include or drop from the result.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="findQuery" optional="true" type="">
-          <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="Expression" name="nToReturn" optional="true" type="uint32">
-          <description>The optional 'uint32' parameter specifies max number of documents to fetch.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
-          <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
-        </parameter>
-        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
-          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
-        </parameter>
-        <inputPort maxNumPorts="1" minNumPorts="1" optional="false" windowPunctInputMode="Oblivious">
-          <description>The Query operator is configurable with a single input port. The input port is non-mutating and its punctuation mode is Oblivious.</description>
-          <windowPolicy>NonWindowed</windowPolicy>
-        </inputPort>
-        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Generating">
-          <description>The Query operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Generating.</description>
-        </outputPort>
-        <codeTemplate name="Query" template="stream&lt;${schema}> ${outputStream} = Query(${inputStream}) {&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;&quot;;&#xA;&#x9;&#x9;dbName : &quot;&quot;;&#xA;&#x9;&#x9;collection : &quot;&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;attr = QueryDocumentField();&#xA;}">
-          <description>Basic Query template</description>
-        </codeTemplate>
-      </primitiveOp>
+      <type column="6" line="16" name="Authentication_t" static="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>" uriIndex="1"/>
     </namespace>
   </toolkit>
 

@@ -7,6 +7,19 @@
 	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
 	require BSONCommon;
 
+	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
+	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
+	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
+
+	unless ($authentication) {
+		if ($username && !$password) {
+			SPL::CodeGen::errorln("Password should be provided whithin username parameter", $model->getParameterByName('username')->getSourceLocation());
+		}
+		elsif (!$username && $password) {
+			SPL::CodeGen::errorln("Username should be provided whithin password parameter", $model->getParameterByName('password')->getSourceLocation());
+		}
+	}
+
 	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
 	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
 
@@ -73,12 +86,25 @@ MY_OPERATOR::~MY_OPERATOR() {}
 
 void MY_OPERATOR::allPortsReady() {
 	
+	std::string errmsg;
+	
 	try {
 		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
 		if(!conn.ok()) {
 			THROW(SPL::SPLRuntimeOperator, "MongoDB create connection failed");
 		}
 		dcpsMetric_.setValueNoLock(conn.getNumConnections());
+		
+		<%if ($authentication) {
+			BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);%>
+			conn->auth(b0.obj());
+		<%}
+		elsif ($username) {%>
+			if(!conn->auth("admin", <%=$username%>, <%=$password%>, errmsg)) {
+				throw DBException(errmsg, 9999);
+			}
+		<%}%>
+
 		conn.done();
 	}
 	catch( const DBException &e ) {
