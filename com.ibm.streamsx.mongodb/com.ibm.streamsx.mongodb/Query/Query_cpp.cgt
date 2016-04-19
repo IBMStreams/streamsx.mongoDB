@@ -8,8 +8,6 @@
 	require BSONCommon;
 
 	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
-	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
-	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
 	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
 	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
 
@@ -22,8 +20,10 @@
 		}
 	}
 	
+	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
 	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
 	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
+	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
 
 	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
 	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
