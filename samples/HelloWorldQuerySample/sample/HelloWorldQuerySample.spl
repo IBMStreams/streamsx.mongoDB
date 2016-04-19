@@ -34,7 +34,31 @@ composite HelloWorldQuerySample {
         		dbHost : "localhost";
         		dbName : "streams";
         		collection : "sample";
+        		
+        	/*
+        	 * Uncomment authentication parameter for custom authentication method
+        	 */
+
+//        		authentication : {mechanism = getSubmissionTimeValue("mechanism", "SCRAM-SHA-1"),
+//        						  user = getSubmissionTimeValue("username", "mongouser"),
+//        						  pwd = getSubmissionTimeValue("password", "passw0rd"),
+//        						  db = getSubmissionTimeValue("adminDB", "admin"),
+//        						  digestPassword = (boolean)getSubmissionTimeValue("digestPassword", "true"),
+//        						  serviceName = getSubmissionTimeValue("serviceName", ""),
+//        						  serviceHostname = getSubmissionTimeValue("serviceHostname", "")};
+
+
+        	/*
+        	 * Uncomment username/password parameters for a default authentication method
+        	 */
+//        		username : getSubmissionTimeValue("username", "mongouser");
+//        		password : getSubmissionTimeValue("password", "passw0rd");
+
+        	/*
+        	 * Uncomment profiling parameter to enable profiling mode
+        	 */
 //        		profiling : all;
+
         	output QueryResult :
         		greeting1 = QueryDocumentField();
         }

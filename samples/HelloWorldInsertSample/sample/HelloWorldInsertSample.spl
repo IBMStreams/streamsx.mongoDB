@@ -23,7 +23,31 @@ composite HelloWorldInsertSample {
         stream<rstring error1, rstring error2, rstring error3, rstring error4, rstring error5, rstring error6> MongoSink = Insert(B1Stream; B2Stream){
         	param
         		dbHost : "localhost";
+        		
+        	/*
+        	 * Uncomment authentication parameter for custom authentication method
+        	 */
+
+//        		authentication : {mechanism = getSubmissionTimeValue("mechanism", "SCRAM-SHA-1"),
+//        						  user = getSubmissionTimeValue("username", "mongouser"),
+//        						  pwd = getSubmissionTimeValue("password", "passw0rd"),
+//        						  db = getSubmissionTimeValue("adminDB", "admin"),
+//        						  digestPassword = (boolean)getSubmissionTimeValue("digestPassword", "true"),
+//        						  serviceName = getSubmissionTimeValue("serviceName", ""),
+//        						  serviceHostname = getSubmissionTimeValue("serviceHostname", "")};
+
+
+        	/*
+        	 * Uncomment username/password parameters for a default authentication method
+        	 */
+//        		username : getSubmissionTimeValue("username", "mongouser");
+//        		password : getSubmissionTimeValue("password", "passw0rd");
+
+        	/*
+        	 * Uncomment profiling parameter to enable profiling mode
+        	 */
 //        		profiling : all;
+
         	output MongoSink :
         		/**
 				 * Store a tuple as is, the resulting document is:
