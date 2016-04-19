@@ -37,7 +37,7 @@
 
       <dd class="dd">
 <ul class="sl simple">
-<li class="sli"><strong class="ph b"><a class="xref" href="spl$com.ibm.streamsx.mongodb$Types.html#spldoc_compilationunit__type__Authentication_t">Authentication_t</a></strong>
+<li class="sli"><strong class="ph b"><a class="xref" href="spl$com.ibm.streamsx.mongodb$Types.html#spldoc_compilationunit__type__Authentication_t">Authentication_t</a></strong>: "mechanism": The string name of the sasl mechanism to use.
 </li>
 
 </ul>
@@ -56,6 +56,31 @@
 <div class="section" id="spldoc_compilationunit__type__Authentication_t"><h2 class="title sectiontitle splpart">Authentication_t</h2>
   
 </div>
+<div class="section">
+
+<p class="p">"mechanism": The string name of the sasl mechanism to use. Use SCRAM-SHA-1 for Mongo 3, MONGODB-CR for Mongo 2.
+</p>
+
+<p class="p">"user": The string name of the user to authenticate.
+</p>
+
+<p class="p">"db": The database target of the auth command, which identifies the location of the credential information for the user. May be "$external" if credential information is stored outside of the mongo cluster.
+</p>
+
+<p class="p">"pwd": The password data.
+</p>
+
+<p class="p">"digestPassword": Boolean, set to true if the "pwd" is undigested (default).
+</p>
+
+<p class="p">"serviceName": The GSSAPI service name to use.  Defaults to "mongodb".
+</p>
+
+<p class="p">"serviceHostname": The GSSAPI hostname to use.  Defaults to the name of the remote host. *
+</p>
+
+</div>
+
 <div class="section">
    <p class="p">
 <tt class="ph tt">Authentication_t = tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname&gt;;</tt>
