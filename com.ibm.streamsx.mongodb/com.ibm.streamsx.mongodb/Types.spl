@@ -1,14 +1,20 @@
 namespace com.ibm.streamsx.mongodb;
 
-/*
- * "mechanism": The string name of the sasl mechanism to use. Use SCRAM-SHA-1 for Mongo 3, MONGODB-CR for Mongo 2.
- * "user": The string name of the user to authenticate.
- * "db": The database target of the auth command, which identifies the location of the credential information for the user.
- * 		 May be "$external" if credential information is stored outside of the mongo cluster.
- * "pwd": The password data.
- * "digestPassword": Boolean, set to true if the "pwd" is undigested (default).
- * "serviceName": The GSSAPI service name to use.  Defaults to "mongodb".
- * "serviceHostname": The GSSAPI hostname to use.  Defaults to the name of the remote host.
- */
+/**
+ *	"mechanism": The string name of the sasl mechanism to use. Use SCRAM-SHA-1 for Mongo 3, MONGODB-CR for Mongo 2.
+ * 
+ *	"user": The string name of the user to authenticate.
+ * 
+ *	"db": The database target of the auth command, which identifies the location of the credential information for the user.
+ *	May be "$external" if credential information is stored outside of the mongo cluster.
+ * 
+ *	"pwd": The password data.
+ * 
+ *	"digestPassword": Boolean, set to true if the "pwd" is undigested (default).
+ * 
+ *	"serviceName": The GSSAPI service name to use.  Defaults to "mongodb".
+ * 
+ *	"serviceHostname": The GSSAPI hostname to use.  Defaults to the name of the remote host.
+ **/
 
 type Authentication_t = tuple<rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>; 

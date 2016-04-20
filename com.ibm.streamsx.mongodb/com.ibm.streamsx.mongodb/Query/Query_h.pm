@@ -48,7 +48,7 @@ sub main::generate($$) {
    print '	OPort0Type * getOutputTuple();', "\n";
    print "\n";
    print '	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;', "\n";
-   print '	DBClientConnection * getDBClientConnection(const string& dbHost, uint32_t dbPort);', "\n";
+   print '	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);', "\n";
    print '	', "\n";
    print '	BSONObj findFieldsBO_;', "\n";
    print '	BSONObj buildFindFieldsBO();', "\n";

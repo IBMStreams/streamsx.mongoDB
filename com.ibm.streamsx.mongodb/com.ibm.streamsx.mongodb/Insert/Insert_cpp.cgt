@@ -129,7 +129,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
 # [----- perl code -----]%>
 			
-			DBClientConnection * connPtr = getDBClientConnection(<%=$dbHost%>, <%=$dbPort%>);
+			DBClientConnection * connPtr = getDBClientConnection(<%=$db%>, <%=$dbHost%>, <%=$dbPort%>);
 			
 			if(connPtr->isFailed()) {
 				if (<%=$autoReconnect%>) {
@@ -171,7 +171,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 // static thread_specific_ptr initialization
 streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR::connPtr_;
 
-DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& dbHost, uint32_t dbPort) {
+DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort) {
 	DBClientConnection * connPtr = connPtr_.get();
 	if(!connPtr) {
 		connPtr_.reset(new DBClientConnection(<%=$autoReconnect%>, 0, (double)<%=$timeout%>));
@@ -186,7 +186,7 @@ DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& dbHost, ui
 				connPtr->auth(b0.obj());
 			<%}
 			elsif ($username) {%>
-				if(!connPtr->auth("admin", <%=$username%>, <%=$password%>, errmsg)) {
+				if(!connPtr->auth(db, <%=$username%>, <%=$password%>, errmsg)) {
 					throw DBException(errmsg, 9999);
 				}
 			<%}%>

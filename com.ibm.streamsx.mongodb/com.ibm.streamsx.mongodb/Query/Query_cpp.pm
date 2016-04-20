@@ -17,8 +17,6 @@ sub main::generate($$) {
    	require BSONCommon;
    
    	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
-   	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
-   	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
    	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
    	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
    
@@ -31,8 +29,10 @@ sub main::generate($$) {
    		}
    	}
    	
+   	my $db = $model->getParameterByName('dbName')->getValueAt(0)->getCppExpression();
    	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
    	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
+   	my $collection = $model->getParameterByName('collection')->getValueAt(0)->getCppExpression();
    
    	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
    	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
@@ -257,6 +257,8 @@ sub main::generate($$) {
    print '	bool docFound = false;', "\n";
    print "\n";
    print '	DBClientConnection * connPtr = getDBClientConnection(';
+   print $db;
+   print ', ';
    print $dbHost;
    print ', ';
    print $dbPort;
@@ -377,7 +379,7 @@ sub main::generate($$) {
    print '// static thread_specific_ptr initialization', "\n";
    print 'streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR_SCOPE::MY_OPERATOR::connPtr_;', "\n";
    print "\n";
-   print 'DBClientConnection * MY_OPERATOR_SCOPE::MY_OPERATOR::getDBClientConnection(const string& dbHost, uint32_t dbPort) {', "\n";
+   print 'DBClientConnection * MY_OPERATOR_SCOPE::MY_OPERATOR::getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort) {', "\n";
    print '	DBClientConnection * connPtr = connPtr_.get();', "\n";
    print '	if(!connPtr) {', "\n";
    print '		connPtr_.reset(new DBClientConnection(';
@@ -400,7 +402,7 @@ sub main::generate($$) {
    }
    			elsif ($username) {
    print "\n";
-   print '				if(!connPtr->auth("admin", ';
+   print '				if(!connPtr->auth(db, ';
    print $username;
    print ', ';
    print $password;

@@ -213,7 +213,7 @@ One output port is defined for use with custom output functions and optionally t
           <description>Basic Insert template</description>
         </codeTemplate>
       </primitiveOp>
-      <type column="6" line="16" name="Authentication_t" static="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>" uriIndex="1"/>
+      <type column="6" line="20" name="Authentication_t" static="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>" uriIndex="1"/>
     </namespace>
     <sabFiles>
       <ti:include path="toolkit.xml" root="toolkitDir"/>

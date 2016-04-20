@@ -166,6 +166,8 @@ sub main::generate($$) {
    print "\n";
    print '			', "\n";
    print '			DBClientConnection * connPtr = getDBClientConnection(';
+   print $db;
+   print ', ';
    print $dbHost;
    print ', ';
    print $dbPort;
@@ -239,7 +241,7 @@ sub main::generate($$) {
    print '// static thread_specific_ptr initialization', "\n";
    print 'streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR_SCOPE::MY_OPERATOR::connPtr_;', "\n";
    print "\n";
-   print 'DBClientConnection * MY_OPERATOR_SCOPE::MY_OPERATOR::getDBClientConnection(const string& dbHost, uint32_t dbPort) {', "\n";
+   print 'DBClientConnection * MY_OPERATOR_SCOPE::MY_OPERATOR::getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort) {', "\n";
    print '	DBClientConnection * connPtr = connPtr_.get();', "\n";
    print '	if(!connPtr) {', "\n";
    print '		connPtr_.reset(new DBClientConnection(';
@@ -262,7 +264,7 @@ sub main::generate($$) {
    }
    			elsif ($username) {
    print "\n";
-   print '				if(!connPtr->auth("admin", ';
+   print '				if(!connPtr->auth(db, ';
    print $username;
    print ', ';
    print $password;

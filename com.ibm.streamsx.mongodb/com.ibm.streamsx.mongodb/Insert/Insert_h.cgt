@@ -40,7 +40,7 @@ private:
 	string buildDbCollection(const string& db, const string& collection);
 
 	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
-	DBClientConnection * getDBClientConnection(const string& dbHost, uint32_t dbPort);
+	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);
 };
 
 <%SPL::CodeGen::headerEpilogue($model);%>
