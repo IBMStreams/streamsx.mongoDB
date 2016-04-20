@@ -8,8 +8,8 @@ Incubation for projects is covered here: https://github.com/IBMStreams/administr
 
 - [ ] :white_check_mark: Stable release(s)
   * Status: Multiple releases already completed
-- [ ] :large_orange_diamond: Project is properly documented
-  * Status: SPLDOC needs update
+- [ ] :white_check_mark: Project is properly documented
+  * Status: SPLDOC is updated for the latest version
 - [ ] :white_check_mark: Project has samples and instructions to help users get started easily
   * Status: Yes
 - [ ] :large_orange_diamond: Sufficient testing
