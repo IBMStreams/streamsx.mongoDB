@@ -51,6 +51,8 @@ MY_OPERATOR::~MY_OPERATOR() {}
 
 void MY_OPERATOR::allPortsReady() {
 
+	std::string errmsg;
+
 	try {
 		ScopedDbConnection conn(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>), (double)<%=$timeout%>);
 		if(!conn.ok()) {
