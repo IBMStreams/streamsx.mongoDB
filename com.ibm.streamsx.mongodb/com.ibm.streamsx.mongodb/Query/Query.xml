@@ -211,6 +211,15 @@ One output port is defined for use with custom output functions, multiple tuples
         <type>ProfilingLevel</type>
         <cardinality>1</cardinality>
       </parameter>
+      <parameter>
+        <name>sslOptions</name>
+        <description>The optional SSLOptions_t parameter specifies MongoDB SSL parameters.</description>
+        <optional>true</optional>
+        <rewriteAllowed>false</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>tuple&lt;boolean sslMode, rstring caFile, rstring pemKeyFile, rstring pemKeyPassword, rstring crlFile, boolean allowInvalidCertificates, boolean allowInvalidHostnames></type>
+        <cardinality>1</cardinality>
+      </parameter>
     </parameters>
     <inputPorts>
       <inputPortSet>

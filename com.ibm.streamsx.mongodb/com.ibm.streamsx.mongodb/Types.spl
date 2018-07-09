@@ -18,3 +18,22 @@ namespace com.ibm.streamsx.mongodb;
  **/
 
 type Authentication_t = tuple<rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>; 
+
+/**
+ *	"sslMode": The boolean switch to turn SSL on/off.
+ * 
+ *	"caFile": The rstring to configure the SSL CA file to use.
+ * 
+ *	"pemKeyFile": The rstring to configure the SSL PEM key file to use.
+ * 
+ *	"pemKeyPassword": The rstring to configure the SSL PEM key password.
+ * 
+ *	"crlFile": The rstring to configure the SSL CRL file to use.
+ * 
+ *	"allowInvalidCertificates": The boolean switch to disable SSL certificate validation.
+ * 
+ *	"allowInvalidHostnames": The boolean switch to disable SSL hostname validation.
+ **/
+
+type SSLOptions_t = tuple<boolean sslMode, rstring caFile, rstring pemKeyFile, rstring pemKeyPassword, rstring crlFile,
+						boolean allowInvalidCertificates, boolean allowInvalidHostnames>;

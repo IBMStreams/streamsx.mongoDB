@@ -1,26 +1,8 @@
-#include <SPL/Runtime/Operator/OperatorMetrics.h>
-#include <streams_boost/shared_ptr.hpp>
-#include <streams_boost/thread/tss.hpp>
-#include <streams_boost/typeof/typeof.hpp>
-#include <streams_boost/foreach.hpp>
-#define foreach STREAMS_BOOST_FOREACH
-
-#include "Mongo.h"
-
-using std::string;
-using streams_boost::shared_ptr;
-
-using namespace mongo;
+@include "../Common/MongoInclude_h.cgt"
 
 <%SPL::CodeGen::headerPrologue($model);%>
 
-template<class Void>
-struct MongoInit {
-	static Status status_;
-};
-
-template<class Void>
-Status MongoInit<Void>::status_ = client::initialize();
+@include "../Common/MongoInit_h.cgt"
 
 class MY_OPERATOR: public MY_BASE_OPERATOR {
 

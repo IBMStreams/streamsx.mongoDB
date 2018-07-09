@@ -1,0 +1,25 @@
+<%
+	my $sslOptions = ($_ = $model->getParameterByName('sslOptions')) ? $_->getValueAt(0)->getCppExpression() : '';
+	my $sslOptionsType = ($_ = $model->getParameterByName('sslOptions')) ? $_->getValueAt(0)->getCppType() : '';
+	
+	my $clientOptions ="client::Options().setSSLMode( (client::Options::SSLModes)(int)sslOptions.get_sslMode())" .
+										".setSSLCAFile( sslOptions.get_caFile())" .
+										".setSSLPEMKeyFile( sslOptions.get_pemKeyFile())" .
+										".setSSLPEMKeyPassword( sslOptions.get_pemKeyPassword())" .
+										".setSSLCRLFile( sslOptions.get_crlFile())" .
+										".setSSLAllowInvalidCertificates( sslOptions.get_allowInvalidCertificates())" .
+										".setSSLAllowInvalidHostnames( sslOptions.get_allowInvalidHostnames())" if ($sslOptions);
+%>
+
+template<class Void>
+struct MongoInit {
+	static Status status_;
+	
+private:
+	static Status init(<%="$sslOptionsType const& sslOptions" if($sslOptionsType)%> ) {
+		return client::initialize(<%=$clientOptions%>);
+	}
+};
+
+template<class Void>
+Status MongoInit<Void>::status_ = init(<%=$sslOptions%>);
