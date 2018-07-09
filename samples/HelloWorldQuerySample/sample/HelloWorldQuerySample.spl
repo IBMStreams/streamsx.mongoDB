@@ -49,6 +49,14 @@ composite HelloWorldQuerySample {
 
 
         	/*
+        	 * Uncomment sslOptions parameter to configure SSL
+        	 */
+
+				// Create etc directory and add there PEM file.
+//        		sslOptions : {sslMode = true, caFile = "", pemKeyFile = getThisToolkitDir() + "/etc/mongodb.pem", pemKeyPassword = "", crlFile = "", allowInvalidCertificates = false, allowInvalidHostnames = false};
+
+
+        	/*
         	 * Uncomment username/password parameters for a default authentication method
         	 */
 //        		username : getSubmissionTimeValue("username", "mongouser");
@@ -63,105 +71,105 @@ composite HelloWorldQuerySample {
         		greeting1 = QueryDocumentField();
         }
 
- 		/**
-		 * Get all documents, assign each document as JSON, drop _id field.
-		 */
-        stream<rstring json> QueryResult2 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        		findFields : {"_id" : 0};
-        	output QueryResult :
-        		json = QueryDocumentFieldAsJson();
-        }
-        
- 		/**
-		 * Get all documents, assign 'greeting4' array field if exists, the resulting tuples are:
-		 * {greeting4=["Hello","world"]}
-		 * {greeting4=["Hello","world"]}
-		 */
-        stream<list<rstring> greeting4> QueryResult3 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        	output QueryResult :
-        		greeting4 = QueryDocumentField();
-        }
-        
- 		/**
-		 * Get only documents where 'greeting2' map<rstring,rstring> field exists, assign it, the resulting tuple is:
-		 * {greeting2={"greeting2":"Hello again"}}
-		 */
-        stream<map<rstring,rstring> greeting2> QueryResult4 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        		findQuery : {greeting2 = {"$exists": true}};
-        	output QueryResult :
-        		greeting2 = QueryDocumentField();
-        }
-        
- 		/**
-		 * Get one partial document where 'greeting5_1' rstring field exists, assign it, the resulting tuple is:
-		 * {greeting5_1="Hello"}
-		 */
-        stream<rstring greeting5_1> QueryResult5 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        		findFields : {"greeting5_1" : 1};
-        		findQuery : {greeting5_1 = {"$exists": true}};
-        		nToReturn : 1u;
-        	output QueryResult :
-        		greeting5_1 = QueryDocumentField();
-        }
-        
- 		/**
-		 * Get only documents where 'greeting2' field exists, fetch 'greeting2' from path 'greeting2', the resulting tuple is:
-		 * {greeting2="Hello again"}
-		 */
-        stream<rstring greeting2> QueryResult6 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        		findQuery : {greeting2 = {"$exists": true}};
-        	output QueryResult :
-        		greeting2 = QueryDocumentField("greeting2");
-        }
-        
- 		/**
-		 * Get all documents with flat structure, the resulting tuple is:
-		 * {allDocs={"greeting1":"Hello world"}}
-		 * {allDocs={"greeting1":"Hello world"}}
-		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
-		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
-		 */
-        stream<map<rstring,rstring> allDocs> QueryResult7 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        	output QueryResult :
-        		allDocs = QueryDocumentMultipleFields();
-        }
-
- 		/**
-		 * Get all documents where 'greeting2.greeting2' rstring field exists,
-		 * assign the value to 'field' (aka 'field' is alias name to 'greeting2.greeting2'), the resulting tuple is:
-		 * {field="Hello again"}
-		 */
-        stream<rstring field> QueryResult8 as QueryResult = Query(beaconOutStream) {
-        	param
-        		dbHost : "localhost";
-        		dbName : "streams";
-        		collection : "sample";
-        		findQuery : {"greeting2.greeting2" : {"$exists": true}};
-        	output QueryResult :
-        		field = QueryDocumentMultipleFields("greeting2.greeting2");
-        }
+// 		/**
+//		 * Get all documents, assign each document as JSON, drop _id field.
+//		 */
+//        stream<rstring json> QueryResult2 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        		findFields : {"_id" : 0};
+//        	output QueryResult :
+//        		json = QueryDocumentFieldAsJson();
+//        }
+//        
+// 		/**
+//		 * Get all documents, assign 'greeting4' array field if exists, the resulting tuples are:
+//		 * {greeting4=["Hello","world"]}
+//		 * {greeting4=["Hello","world"]}
+//		 */
+//        stream<list<rstring> greeting4> QueryResult3 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        	output QueryResult :
+//        		greeting4 = QueryDocumentField();
+//        }
+//        
+// 		/**
+//		 * Get only documents where 'greeting2' map<rstring,rstring> field exists, assign it, the resulting tuple is:
+//		 * {greeting2={"greeting2":"Hello again"}}
+//		 */
+//        stream<map<rstring,rstring> greeting2> QueryResult4 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        		findQuery : {greeting2 = {"$exists": true}};
+//        	output QueryResult :
+//        		greeting2 = QueryDocumentField();
+//        }
+//        
+// 		/**
+//		 * Get one partial document where 'greeting5_1' rstring field exists, assign it, the resulting tuple is:
+//		 * {greeting5_1="Hello"}
+//		 */
+//        stream<rstring greeting5_1> QueryResult5 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        		findFields : {"greeting5_1" : 1};
+//        		findQuery : {greeting5_1 = {"$exists": true}};
+//        		nToReturn : 1u;
+//        	output QueryResult :
+//        		greeting5_1 = QueryDocumentField();
+//        }
+//        
+// 		/**
+//		 * Get only documents where 'greeting2' field exists, fetch 'greeting2' from path 'greeting2', the resulting tuple is:
+//		 * {greeting2="Hello again"}
+//		 */
+//        stream<rstring greeting2> QueryResult6 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        		findQuery : {greeting2 = {"$exists": true}};
+//        	output QueryResult :
+//        		greeting2 = QueryDocumentField("greeting2");
+//        }
+//        
+// 		/**
+//		 * Get all documents with flat structure, the resulting tuple is:
+//		 * {allDocs={"greeting1":"Hello world"}}
+//		 * {allDocs={"greeting1":"Hello world"}}
+//		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+//		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+//		 */
+//        stream<map<rstring,rstring> allDocs> QueryResult7 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        	output QueryResult :
+//        		allDocs = QueryDocumentMultipleFields();
+//        }
+//
+// 		/**
+//		 * Get all documents where 'greeting2.greeting2' rstring field exists,
+//		 * assign the value to 'field' (aka 'field' is alias name to 'greeting2.greeting2'), the resulting tuple is:
+//		 * {field="Hello again"}
+//		 */
+//        stream<rstring field> QueryResult8 as QueryResult = Query(beaconOutStream) {
+//        	param
+//        		dbHost : "localhost";
+//        		dbName : "streams";
+//        		collection : "sample";
+//        		findQuery : {"greeting2.greeting2" : {"$exists": true}};
+//        	output QueryResult :
+//        		field = QueryDocumentMultipleFields("greeting2.greeting2");
+//        }
 }

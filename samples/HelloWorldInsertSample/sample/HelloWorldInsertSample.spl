@@ -38,6 +38,12 @@ composite HelloWorldInsertSample {
 
 
         	/*
+        	 * Uncomment sslOptions parameter to configure SSL
+        	 */
+				// Create etc directory and add there PEM file.
+//        		sslOptions : {sslMode = true, caFile = "", pemKeyFile = getThisToolkitDir() + "/etc/mongodb.pem", pemKeyPassword = "", crlFile = "", allowInvalidCertificates = false, allowInvalidHostnames = false};
+
+        	/*
         	 * Uncomment username/password parameters for a default authentication method
         	 */
 //        		username : getSubmissionTimeValue("username", "mongouser");
