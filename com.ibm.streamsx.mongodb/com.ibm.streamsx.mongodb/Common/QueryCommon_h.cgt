@@ -1,0 +1,22 @@
+<%
+my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
+my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
+
+if (defined $findFieldsExpr && $findFieldsExpr->hasStreamAttributes()) {%>
+	BSONObj buildFindFieldsBO(Tuple const & tuple);
+<%}
+else {%>
+	BSONObj buildFindFieldsBO();
+<%}
+
+
+if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
+	BSONObj buildFindQueryBO(Tuple const & tuple);
+<%}
+else {%>
+	BSONObj buildFindQueryBO();
+<%}
+%>
+
+	BSONObj findFieldsBO_;
+	BSONObj findQueryBO_;

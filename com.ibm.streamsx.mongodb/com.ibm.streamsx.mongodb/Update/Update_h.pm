@@ -2,7 +2,7 @@
 # SPL_CGT_INCLUDE: ../Common/QueryCommon_h.cgt
 # SPL_CGT_INCLUDE: ../Common/MongoInit_h.cgt
 
-package Query_h;
+package Update_h;
 use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Annotation; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeEvaluator; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::TupleValue; use SPL::Operator::Instance::Window; 
 sub main::generate($$) {
    my ($xml, $signature) = @_;  
@@ -91,14 +91,11 @@ sub main::generate($$) {
    print '	void process(Tuple const & tuple, uint32_t port);', "\n";
    print "\n";
    print 'private:', "\n";
-   print '	Metric & nQueriesMetric_;', "\n";
-   print "\n";
-   print '	static streams_boost::thread_specific_ptr<OPort0Type> otuplePtr_;', "\n";
-   print '	OPort0Type * getOutputTuple();', "\n";
+   print '	Metric & nUpdatesMetric_;', "\n";
    print "\n";
    print '	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;', "\n";
    print '	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);', "\n";
-   print '	', "\n";
+   print "\n";
    my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
    my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
    

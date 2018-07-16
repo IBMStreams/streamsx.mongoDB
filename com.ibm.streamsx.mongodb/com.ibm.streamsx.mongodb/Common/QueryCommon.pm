@@ -392,10 +392,4 @@ print qq(
 );
 }
 
-
-sub keyLess($) {
-	my ($splType) = @_;
-	return not (SPL::CodeGen::Type::isBMap($splType) || SPL::CodeGen::Type::isMap($splType) || SPL::CodeGen::Type::isTuple($splType));
-}
-
 1;

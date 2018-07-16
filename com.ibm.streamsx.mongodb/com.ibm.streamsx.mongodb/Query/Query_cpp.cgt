@@ -2,10 +2,10 @@
 
 <%
 	use File::Basename qw(dirname);
-	use QueryCommon;
 
 	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
 	require BSONCommon;
+	require QueryCommon;
 
 	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
 	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
@@ -28,7 +28,7 @@
 	my $findFieldsExpr = ($_ = $model->getParameterByName('findFields')) ? $_->getValueAt(0) : undef;
 	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
 	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a string, map or tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
-		if (defined $findQueryExpr && QueryCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
+		if (defined $findQueryExpr && BSONCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
 
 	my $nToReturn = ($_ = $model->getParameterByName('nToReturn')) ? $_->getValueAt(0)->getCppExpression() : 0;
 	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
@@ -38,105 +38,15 @@
 	my $inputPort = $model->getInputPortAt(0);
 	my $outputPort = $model->getOutputPortAt(0);
 	my $inTuple = $inputPort->getCppTupleName();
+
+	my $metricName = "nQueries";
+	my $findFieldsBO = 'findFieldsBO_('.((defined $findFieldsExpr && not $findFieldsExpr->hasStreamAttributes()) ? 'buildFindFieldsBO()' : 'BSONObj()').')';
+	my $findQueryBO = 'findQueryBO_('.((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()').')';
+	my $myOpParams = "$findFieldsBO, $findQueryBO";
 %>
 
-string MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {
-	string connUrl = dbHost;
-	connUrl += ":"; 
-	connUrl += spl_cast<rstring,uint32_t>::cast(dbPort);
-	return connUrl;
-}
-
-string MY_OPERATOR::buildDbCollection(const string& db, const string& collection) {
-	string dbCollection(db);
-	dbCollection += ".";
-	dbCollection += collection;
-	return dbCollection;
-}
-
-BSONObj MY_OPERATOR::buildFindFieldsBO() {
-<%if (defined $findFieldsExpr) {
-	BSONCommon::buildBSONObject($findFieldsExpr->getSourceLocation(), $findFieldsExpr->getCppExpression(), $findFieldsExpr->getSPLType(), 0);%>
-	return b0.obj();
-<%}
-else {%>
-	return BSONObj();
-<%}%>
-}
-
-BSONObj MY_OPERATOR::buildFindQueryBO() {
-<%if (defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) {
-	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {%>
-	 try {
-		 return fromjson(<%=$findQueryExpr->getCppExpression()%>.c_str());
-	 }
-	 catch(MsgAssertionException e) {
-		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());
-	 }
-	<%}
-	else {
-	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
-	 return b0.obj();
-	<%}
-}
-else {%>
-	 return BSONObj();
-<%}%>
-}
-
-BSONObj MY_OPERATOR::buildFindQueryBO(Tuple const & tuple) {
-	
-<%for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {%>
-  IPort<%=$i%>Type const & <%=$model->getInputPortAt($i)->getCppTupleName()%> = static_cast<IPort<%=$i%>Type const&>(tuple);
-<%}%>
-	
-<%if (defined $findQueryExpr) {
-	if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {%>
-	 try {
-		 return fromjson(<%=$findQueryExpr->getCppExpression()%>.c_str());
-	 }
-	 catch(MsgAssertionException e) {
-		 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());
-	 }
-	<%}
-	else {
-	 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
-	 return b0.obj();
-	<%}
-}
-else {%>
-	 return BSONObj();
-<%}%>
-}
-
-MY_OPERATOR::MY_OPERATOR() : nQueriesMetric_(getContext().getMetrics().getCustomMetricByName("nQueries")),
-							 findFieldsBO_(<%=((defined $findFieldsExpr && not $findFieldsExpr->hasStreamAttributes()) ? 'buildFindFieldsBO()' : 'BSONObj()')%>),
-							 findQueryBO_(<%=((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()')%>) {
-
-	if(!MongoInit<void>::status_.isOK()) {
-		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");
-	}
-}
-
-MY_OPERATOR::~MY_OPERATOR() {}
-
-void MY_OPERATOR::allPortsReady() {
-	
-	try {
-		DBClientConnection conn;
-		conn.connect(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>));
-	}
-	catch( const DBException &e ) {
-		if (<%=$autoReconnect%>)
-			SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");
-		else
-			THROW(SPL::SPLRuntimeOperator, e.what());
-	}
-}
-
-void MY_OPERATOR::prepareToShutdown() {
-	client::shutdown();
-}
+@include "../Common/QueryCommon_cpp.cgt"
+@include "../Common/MongoOperator_cpp.cgt"
 
 void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	<%for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {%>
@@ -159,7 +69,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	}%>
 
 	<%if (defined $findFieldsExpr && $findFieldsExpr->hasStreamAttributes()) {%>
-		const BSONObj & findFieldsBO = buildFindFieldsBO();
+		const BSONObj & findFieldsBO = buildFindFieldsBO(tuple);
 	<%}
 	else {%>
 		const BSONObj & findFieldsBO = findFieldsBO_;
@@ -261,37 +171,6 @@ MY_OPERATOR::OPort0Type * MY_OPERATOR::getOutputTuple() {
 	return otuplePtr;
 }
 
-// static thread_specific_ptr initialization
-streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR::connPtr_;
-
-DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort) {
-	DBClientConnection * connPtr = connPtr_.get();
-	if(!connPtr) {
-		connPtr_.reset(new DBClientConnection(<%=$autoReconnect%>, 0, (double)<%=$timeout%>));
-		connPtr = connPtr_.get();
-
-		std::string errmsg;
-		try {
-			connPtr->connect(buildConnUrl(dbHost, dbPort));
-			
-			<%if ($authentication) {
-				BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);%>
-				connPtr->auth(b0.obj());
-			<%}
-			elsif ($username) {%>
-				if(!connPtr->auth(db, <%=$username%>, <%=$password%>, errmsg)) {
-					throw DBException(errmsg, 9999);
-				}
-			<%}%>
-		}
-		catch( const DBException &e ) {
-			if (<%=$autoReconnect%>)
-				SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");
-			else
-				THROW(SPL::SPLRuntimeOperator, e.what());
-		}
-	}
-	return connPtr;
-}
+@include "../Common/ThreadCommon_cpp.cgt"
 
 <%SPL::CodeGen::implementationEpilogue($model);%>

@@ -25,10 +25,16 @@
 	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
 	my $autoReconnect = ($_ = $model->getParameterByName('autoReconnect')) ? $_->getValueAt(0)->getCppExpression() : 'true';
 
-	my $metricName = "nInserts";
-	my $myOpParams = undef;
+	my $findFieldsExpr = undef;
+	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
+	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a string, map or tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
+		if (defined $findQueryExpr && BSONCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
+
+	my $metricName = "nUpdates";
+	my $myOpParams = 'findQueryBO_('.((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()').')';
 %>
 
+@include "../Common/QueryCommon_cpp.cgt"
 @include "../Common/MongoOperator_cpp.cgt"
 
 void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
@@ -92,6 +98,13 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
 # [----- perl code -----]%>
 			
+			<%if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
+				const BSONObj & findQueryBO = buildFindQueryBO(tuple);
+			<%}
+			else {%>
+				const BSONObj & findQueryBO = findQueryBO_;
+			<%}%>
+			
 			DBClientConnection * connPtr = getDBClientConnection(<%=$db%>, <%=$dbHost%>, <%=$dbPort%>);
 			
 			if(connPtr->isFailed()) {
@@ -110,15 +123,20 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 				connPtr->setDbProfilingLevel(<%=$db%>,  ProfileAll);
 			<%}%>
 			
-			connPtr->insert(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
+//			connPtr-><%=$BSONCommon::methods{$operation}%>(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
+			<%
+				my $upsert = ($operation =~ /^Upsert/) ? 'true' : 'false';
+				my $multi = ($operation =~ /Documents$/) ? 'true' : 'false';
+			%>
+			connPtr->update(buildDbCollection(<%=$db%>, <%=$collection%>), findQueryBO, b0.obj(), <%=$upsert%>, <%=$multi%>);
 			const string & errorMsg = connPtr->getLastError();
 			
 			if (errorMsg == "") {
-				nInsertsMetric_.incrementValue();
+				nUpdatesMetric_.incrementValue();
 			}
 			else {				
 				errorFound = true;
-				SPLAPPLOG(L_ERROR, errorMsg, "MongoDB Insert");
+				SPLAPPLOG(L_ERROR, errorMsg, "MongoDB Update");
 				if(!otuplePtr){
 					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());
 				}

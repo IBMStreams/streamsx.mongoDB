@@ -1,0 +1,42 @@
+<%
+my $arg = '';
+my $iports = '';
+
+if ((defined $findFieldsExpr && $findFieldsExpr->hasStreamAttributes()) || (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes())) {
+	$arg = 'Tuple const & tuple';
+	
+	for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
+		$iports .= "IPort$i\Type const & $model->getInputPortAt($i)->getCppTupleName() = static_cast<IPort$i\Type const&>(tuple);\n" ;
+	}
+}
+
+if (defined $findFieldsExpr) {%>
+
+	BSONObj MY_OPERATOR::buildFindFieldsBO(<%=$arg if($findFieldsExpr->hasStreamAttributes())%>) {
+		<%=$iports if($findFieldsExpr->hasStreamAttributes())%>
+
+		<%BSONCommon::buildBSONObject($findFieldsExpr->getSourceLocation(), $findFieldsExpr->getCppExpression(), $findFieldsExpr->getSPLType(), 0);%>
+		return b0.obj();
+	}
+<%}
+
+if (defined $findQueryExpr) {%>
+
+	BSONObj MY_OPERATOR::buildFindQueryBO(<%=$arg if($findQueryExpr->hasStreamAttributes())%>) {
+		<%=$iports if($findQueryExpr->hasStreamAttributes())%>
+		
+		<%if (SPL::CodeGen::Type::isString($findQueryExpr->getSPLType())) {%>
+		 try {
+			 return fromjson(<%=$findQueryExpr->getCppExpression()%>.c_str());
+		 }
+		 catch(MsgAssertionException e) {
+			 THROW(SPL::SPLRuntimeOperator, "FindQuery JSON string is not valid" << std::endl << e.what());
+		 }
+		<%}
+		else {
+		 BSONCommon::buildBSONObject($findQueryExpr->getSourceLocation(), $findQueryExpr->getCppExpression(), $findQueryExpr->getSPLType(), 0);%>
+		 return b0.obj();
+		<%}%>
+	}
+
+<%}%>

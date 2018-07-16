@@ -32,7 +32,8 @@ Below a table for BSON/SPL conversion:
     <uriTable>
       <uri index="1" value="com.ibm.streamsx.mongodb/Types.spl"/>
       <uri index="2" value="com.ibm.streamsx.mongodb/Query"/>
-      <uri index="3" value="com.ibm.streamsx.mongodb/Insert"/>
+      <uri index="3" value="com.ibm.streamsx.mongodb/Update"/>
+      <uri index="4" value="com.ibm.streamsx.mongodb/Insert"/>
     </uriTable>
     <namespace name="com.ibm.streamsx.mongodb">
       <primitiveOp language="Cpp" modelUriIndex="2" name="Query" public="true">
@@ -141,7 +142,136 @@ One output port is defined for use with custom output functions, multiple tuples
           <description>Basic Query template</description>
         </codeTemplate>
       </primitiveOp>
-      <primitiveOp language="Cpp" modelUriIndex="3" name="Insert" public="true">
+      <primitiveOp language="Cpp" modelUriIndex="3" name="Update" public="true">
+        <description>
+Update updates/upserts SPL data in MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
+The operator supports multiple threads.
+
+Update has four custom output function:
+* UpdateDocument updates data in one document (any SPL expression) with or without a specified root tag.
+* UpdateDocuments updates data in all documents (any SPL expression) with or without a specified root tag.
+* UpsertDocument upserts data in one document (any SPL expression) with or without a specified root tag.
+* UpsertDocuments upserts data in all documents (any SPL expression) with or without a specified root tag.
+
+Multiple input ports are allowed and their attributes can be used in multiple UpdateDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
+        <customLiterals name="ProfilingLevel">
+          <value name="off"/>
+          <value name="slow"/>
+          <value name="all"/>
+        </customLiterals>
+        <outputFunctions name="MongoFS">
+          <function name="AsIs" returnType="T">
+            <description>a default assignment</description>
+            <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
+            <parameter name="v" type="T"/>
+          </function>
+          <function name="UpdateDocument" returnType="rstring">
+            <description>updates one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T&gt; rstring UpdateDocument(rstring db, rstring collection, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpdateDocument" returnType="rstring">
+            <description>updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T&gt; rstring UpdateDocument(rstring db, rstring collection, rstring key, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpdateDocuments" returnType="rstring">
+            <description>updates all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T&gt; rstring UpdateDocuments(rstring db, rstring collection, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpdateDocuments" returnType="rstring">
+            <description>updates all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T&gt; rstring UpdateDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpsertDocument" returnType="rstring">
+            <description>upserts one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T&gt; rstring UpsertDocument(rstring db, rstring collection, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpsertDocument" returnType="rstring">
+            <description>upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T&gt; rstring UpsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpsertDocuments" returnType="rstring">
+            <description>upserts all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T&gt; rstring UpsertDocuments(rstring db, rstring collection, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+          <function name="UpsertDocuments" returnType="rstring">
+            <description>upserts all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T&gt; rstring UpsertDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="T"/>
+          </function>
+        </outputFunctions>
+        <parametersDescription/>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="authentication" optional="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>">
+          <description>The optional Authentication_t parameter specifies MongoDB authentication parameters.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="username" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="password" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
+          <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="findQuery" optional="true" type="">
+          <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
+          <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="autoReconnect" optional="true" type="boolean">
+          <description>The optional 'boolean' parameter specifies if try to reconnect when connection failed.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
+          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="sslOptions" optional="true" type="tuple&lt;boolean sslMode, rstring caFile, rstring pemKeyFile, rstring pemKeyPassword, rstring crlFile, boolean allowInvalidCertificates, boolean allowInvalidHostnames>">
+          <description>The optional SSLOptions_t parameter specifies MongoDB SSL parameters.</description>
+        </parameter>
+        <inputPort minNumPorts="0" optional="true" windowPunctInputMode="Oblivious">
+          <description>The Update operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
+          <windowPolicy>NonWindowed</windowPolicy>
+        </inputPort>
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Free">
+          <description>The Update operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
+        </outputPort>
+        <codeTemplate name="Update" template="stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = UpdateDocument(&quot;db&quot;, &quot;collection&quot;, attr);&#xA;}&#xA;">
+          <description>Basic Update template</description>
+        </codeTemplate>
+      </primitiveOp>
+      <primitiveOp language="Cpp" modelUriIndex="4" name="Insert" public="true">
         <description>
 Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
 The operator supports multiple threads.

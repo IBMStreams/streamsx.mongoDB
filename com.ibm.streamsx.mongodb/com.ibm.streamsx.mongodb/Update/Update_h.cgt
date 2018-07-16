@@ -18,10 +18,13 @@ public:
 	void process(Tuple const & tuple, uint32_t port);
 
 private:
-	Metric & nInsertsMetric_;
+	Metric & nUpdatesMetric_;
 
 	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
 	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);
+
+@include "../Common/QueryCommon_h.cgt"
+
 };
 
 <%SPL::CodeGen::headerEpilogue($model);%>

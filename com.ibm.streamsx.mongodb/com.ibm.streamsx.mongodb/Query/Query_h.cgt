@@ -1,5 +1,7 @@
 @include "../Common/MongoInclude_h.cgt"
 
+using namespace com::ibm::streamsx::mongodb;
+
 <%SPL::CodeGen::headerPrologue($model);%>
 
 @include "../Common/MongoInit_h.cgt"
@@ -24,15 +26,8 @@ private:
 	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
 	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);
 	
-	BSONObj findFieldsBO_;
-	BSONObj buildFindFieldsBO();
+@include "../Common/QueryCommon_h.cgt"
 
-	BSONObj findQueryBO_;
-	BSONObj buildFindQueryBO();
-	BSONObj buildFindQueryBO(Tuple const & tuple);
-
-	string buildConnUrl(const string& dbHost, uint32_t dbPort);
-	string buildDbCollection(const string& db, const string& collection);
 };
 
 <%SPL::CodeGen::headerEpilogue($model);%>

@@ -1,0 +1,32 @@
+// static thread_specific_ptr initialization
+streams_boost::thread_specific_ptr<DBClientConnection> MY_OPERATOR::connPtr_;
+
+DBClientConnection * MY_OPERATOR::getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort) {
+	DBClientConnection * connPtr = connPtr_.get();
+	if(!connPtr) {
+		connPtr_.reset(new DBClientConnection(<%=$autoReconnect%>, 0, (double)<%=$timeout%>));
+		connPtr = connPtr_.get();
+
+		std::string errmsg;
+		try {
+			connPtr->connect(buildConnUrl(dbHost, dbPort));
+			
+			<%if ($authentication) {
+				BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);%>
+				connPtr->auth(b0.obj());
+			<%}
+			elsif ($username) {%>
+				if(!connPtr->auth(db, <%=$username%>, <%=$password%>, errmsg)) {
+					throw DBException(errmsg, 9999);
+				}
+			<%}%>
+		}
+		catch( const DBException &e ) {
+			if (<%=$autoReconnect%>)
+				SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");
+			else
+				THROW(SPL::SPLRuntimeOperator, e.what());
+		}
+	}
+	return connPtr;
+}

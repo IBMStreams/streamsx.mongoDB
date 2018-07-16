@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<operatorModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ibm.com/xmlns/prod/streams/spl/operator" xmlns:cmn="http://www.ibm.com/xmlns/prod/streams/spl/common" xsi:schemaLocation="http://www.ibm.com/xmlns/prod/streams/spl/operator operatorModel.xsd">
+  <cppOperatorModel>
+    <context>
+      <description>
+Update updates/upserts SPL data in MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
+The operator supports multiple threads.
+
+Update has four custom output function:
+* UpdateDocument updates data in one document (any SPL expression) with or without a specified root tag.
+* UpdateDocuments updates data in all documents (any SPL expression) with or without a specified root tag.
+* UpsertDocument upserts data in one document (any SPL expression) with or without a specified root tag.
+* UpsertDocuments upserts data in all documents (any SPL expression) with or without a specified root tag.
+
+Multiple input ports are allowed and their attributes can be used in multiple UpdateDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
+      <metrics>
+        <metric>
+          <name>nUpdates</name>
+          <description></description>
+          <kind>Counter</kind>
+        </metric>
+      </metrics>
+      <customLiterals>
+        <enumeration>
+          <name>ProfilingLevel</name>
+          <value>off</value>
+          <value>slow</value>
+          <value>all</value>
+        </enumeration>
+      </customLiterals>
+      <customOutputFunctions>
+        <customOutputFunction>
+          <name>MongoFS</name>
+          <function pseudoFunction="true">
+            <description>a default assignment</description>
+            <prototype>&lt;any T> T AsIs(T v)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+        </customOutputFunction>
+      </customOutputFunctions>
+      <libraryDependencies>
+        <library>
+          <cmn:description></cmn:description>
+          <cmn:managedLibrary>
+            <cmn:lib>mongoclient</cmn:lib>
+            <cmn:libPath>../../impl/lib</cmn:libPath>
+            <cmn:includePath>../../impl/include</cmn:includePath>
+          </cmn:managedLibrary>
+        </library>
+      </libraryDependencies>
+      <providesSingleThreadedContext>Always</providesSingleThreadedContext>
+      <allowCustomLogic>false</allowCustomLogic>
+      <codeTemplates>
+        <codeTemplate name="Update">
+          <description>Basic Update template</description>
+          <template>stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){
+	param
+		dbHost : &quot;localhost&quot;;
+	output ${outputStream} :
+		error = UpdateDocument(&quot;db&quot;, &quot;collection&quot;, attr);
+}
+</template>
+        </codeTemplate>
+      </codeTemplates>
+    </context>
+    <parameters>
+      <description></description>
+      <allowAny>false</allowAny>
+      <parameter>
+        <name>authentication</name>
+        <description>The optional Authentication_t parameter specifies MongoDB authentication parameters.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname></type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>username</name>
+        <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>rstring</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>password</name>
+        <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>rstring</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>dbHost</name>
+        <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
+        <optional>false</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>rstring</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>dbPort</name>
+        <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>uint32</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>findQuery</name>
+        <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
+        <optional>true</optional>
+        <rewriteAllowed>false</rewriteAllowed>
+        <expressionMode>Expression</expressionMode>
+        <type></type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>timeout</name>
+        <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>float64</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>autoReconnect</name>
+        <description>The optional 'boolean' parameter specifies if try to reconnect when connection failed.</description>
+        <optional>true</optional>
+        <rewriteAllowed>true</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>boolean</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>profiling</name>
+        <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        <optional>true</optional>
+        <rewriteAllowed>false</rewriteAllowed>
+        <expressionMode>CustomLiteral</expressionMode>
+        <type>ProfilingLevel</type>
+        <cardinality>1</cardinality>
+      </parameter>
+      <parameter>
+        <name>sslOptions</name>
+        <description>The optional SSLOptions_t parameter specifies MongoDB SSL parameters.</description>
+        <optional>true</optional>
+        <rewriteAllowed>false</rewriteAllowed>
+        <expressionMode>AttributeFree</expressionMode>
+        <type>tuple&lt;boolean sslMode, rstring caFile, rstring pemKeyFile, rstring pemKeyPassword, rstring crlFile, boolean allowInvalidCertificates, boolean allowInvalidHostnames></type>
+        <cardinality>1</cardinality>
+      </parameter>
+    </parameters>
+    <inputPorts>
+      <inputPortOpenSet>
+        <description>The Update operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
+        <windowingDescription></windowingDescription>
+        <tupleMutationAllowed>false</tupleMutationAllowed>
+        <windowingMode>NonWindowed</windowingMode>
+        <windowPunctuationInputMode>Oblivious</windowPunctuationInputMode>
+      </inputPortOpenSet>
+    </inputPorts>
+    <outputPorts>
+      <outputPortSet>
+        <description>The Update operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
+        <expressionMode>Expression</expressionMode>
+        <autoAssignment>false</autoAssignment>
+        <completeAssignment>false</completeAssignment>
+        <rewriteAllowed>false</rewriteAllowed>
+        <outputFunctions>
+          <default>AsIs</default>
+          <type>MongoFS</type>
+        </outputFunctions>
+        <windowPunctuationOutputMode>Free</windowPunctuationOutputMode>
+        <windowPunctuationInputPort>-1</windowPunctuationInputPort>
+        <tupleMutationAllowed>false</tupleMutationAllowed>
+        <cardinality>1</cardinality>
+        <optional>false</optional>
+      </outputPortSet>
+    </outputPorts>
+  </cppOperatorModel>
+</operatorModel>

@@ -1,0 +1,28 @@
+MY_OPERATOR::MY_OPERATOR() : <%=$metricName%>Metric_(getContext().getMetrics().getCustomMetricByName("<%=$metricName%>"))
+							 <%=((defined $myOpParams) ? ", $myOpParams" : '')%>
+{
+
+	if(!MongoInit<void>::status_.isOK()) {
+		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");
+	}
+}
+
+MY_OPERATOR::~MY_OPERATOR() {}
+
+void MY_OPERATOR::allPortsReady() {
+	
+	try {
+		DBClientConnection conn;
+		conn.connect(buildConnUrl(<%=$dbHost%>, <%=$dbPort%>));
+	}
+	catch( const DBException &e ) {
+		if (<%=$autoReconnect%>)
+			SPLAPPLOG(L_ERROR, e.what(), "MongoDB Connect");
+		else
+			THROW(SPL::SPLRuntimeOperator, e.what());
+	}
+}
+
+void MY_OPERATOR::prepareToShutdown() {
+	client::shutdown();
+}

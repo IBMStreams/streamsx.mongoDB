@@ -1,3 +1,5 @@
+# SPL_CGT_INCLUDE: ../Common/MongoOperator_cpp.cgt
+# SPL_CGT_INCLUDE: ../Common/ThreadCommon_cpp.cgt
 
 package Insert_cpp;
 use strict; use Cwd 'realpath';  use File::Basename;  use lib dirname(__FILE__);  use SPL::Operator::Instance::OperatorInstance; use SPL::Operator::Instance::Annotation; use SPL::Operator::Instance::Context; use SPL::Operator::Instance::Expression; use SPL::Operator::Instance::ExpressionTree; use SPL::Operator::Instance::ExpressionTreeEvaluator; use SPL::Operator::Instance::ExpressionTreeVisitor; use SPL::Operator::Instance::ExpressionTreeCppGenVisitor; use SPL::Operator::Instance::InputAttribute; use SPL::Operator::Instance::InputPort; use SPL::Operator::Instance::OutputAttribute; use SPL::Operator::Instance::OutputPort; use SPL::Operator::Instance::Parameter; use SPL::Operator::Instance::StateVariable; use SPL::Operator::Instance::TupleValue; use SPL::Operator::Instance::Window; 
@@ -11,7 +13,6 @@ sub main::generate($$) {
    print "\n";
    print "\n";
    	use File::Basename qw(dirname);
-   	use InsertCommon;
    	
    	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
    	require BSONCommon;
@@ -34,23 +35,20 @@ sub main::generate($$) {
    	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
    	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
    	my $autoReconnect = ($_ = $model->getParameterByName('autoReconnect')) ? $_->getValueAt(0)->getCppExpression() : 'true';
+   
+   	my $metricName = "nInserts";
+   	my $myOpParams = undef;
    print "\n";
    print "\n";
-   print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildConnUrl(const string& dbHost, uint32_t dbPort) {', "\n";
-   print '	string connUrl = dbHost;', "\n";
-   print '	connUrl += ":"; ', "\n";
-   print '	connUrl += spl_cast<rstring,uint32_t>::cast(dbPort);', "\n";
-   print '	return connUrl;', "\n";
-   print '}', "\n";
+   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : ';
+   print $metricName;
+   print 'Metric_(getContext().getMetrics().getCustomMetricByName("';
+   print $metricName;
+   print '"))', "\n";
+   print '							 ';
+   print ((defined $myOpParams) ? ", $myOpParams" : '');
    print "\n";
-   print 'string MY_OPERATOR_SCOPE::MY_OPERATOR::buildDbCollection(const string& db, const string& collection) {', "\n";
-   print '	string dbCollection(db);', "\n";
-   print '	dbCollection += ".";', "\n";
-   print '	dbCollection += collection;', "\n";
-   print '	return dbCollection;', "\n";
-   print '}', "\n";
-   print "\n";
-   print 'MY_OPERATOR_SCOPE::MY_OPERATOR::MY_OPERATOR() : nInsertsMetric_(getContext().getMetrics().getCustomMetricByName("nInserts")) {', "\n";
+   print '{', "\n";
    print "\n";
    print '	if(!MongoInit<void>::status_.isOK()) {', "\n";
    print '		THROW(SPL::SPLRuntimeOperator, "MongoDB initialization failed");', "\n";
@@ -60,7 +58,7 @@ sub main::generate($$) {
    print 'MY_OPERATOR_SCOPE::MY_OPERATOR::~MY_OPERATOR() {}', "\n";
    print "\n";
    print 'void MY_OPERATOR_SCOPE::MY_OPERATOR::allPortsReady() {', "\n";
-   print "\n";
+   print '	', "\n";
    print '	try {', "\n";
    print '		DBClientConnection conn;', "\n";
    print '		conn.connect(buildConnUrl(';
@@ -128,7 +126,7 @@ sub main::generate($$) {
    			}
    			else {
    				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
-   				if (InsertCommon::keyLess($expr->getSPLType())) {
+   				if (BSONCommon::keyLess($expr->getSPLType())) {
    					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
    				}
    			}
@@ -158,7 +156,7 @@ sub main::generate($$) {
    print '		{', "\n";
    print '		', "\n";
    # [----- perl code -----]
-   			InsertCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
+   			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
    			
    			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
@@ -254,7 +252,7 @@ sub main::generate($$) {
    print '		std::string errmsg;', "\n";
    print '		try {', "\n";
    print '			connPtr->connect(buildConnUrl(dbHost, dbPort));', "\n";
-   print "\n";
+   print '			', "\n";
    print '			';
    if ($authentication) {
    				BSONCommon::buildBSONObject($authentication->getSourceLocation(), $authentication->getCppExpression(), $authentication->getSPLType(), 0);
