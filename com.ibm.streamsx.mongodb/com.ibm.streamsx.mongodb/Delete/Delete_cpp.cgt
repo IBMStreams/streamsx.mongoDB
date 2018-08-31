@@ -1,0 +1,112 @@
+<%SPL::CodeGen::implementationPrologue($model);%>
+
+<%
+	use File::Basename qw(dirname);
+	
+	unshift @INC, dirname($model->getContext()->getOperatorDirectory()) . '/Common';
+	require BSONCommon;
+
+	my $authentication = ($_ = $model->getParameterByName('authentication')) ? $_->getValueAt(0) : undef;
+	my $username = ($_ = $model->getParameterByName('username')) ? $_->getValueAt(0)->getCppExpression() : undef;
+	my $password = ($_ = $model->getParameterByName('password')) ? $_->getValueAt(0)->getCppExpression() : undef;
+
+	unless ($authentication) {
+		if ($username && !$password) {
+			SPL::CodeGen::errorln("Password should be provided whithin username parameter", $model->getParameterByName('username')->getSourceLocation());
+		}
+		elsif (!$username && $password) {
+			SPL::CodeGen::errorln("Username should be provided whithin password parameter", $model->getParameterByName('password')->getSourceLocation());
+		}
+	}
+
+	my $dbHost = $model->getParameterByName('dbHost')->getValueAt(0)->getCppExpression();
+	my $dbPort = ($_ = $model->getParameterByName('dbPort')) ? $_->getValueAt(0)->getCppExpression() : 27017;
+	my $timeout = ($_ = $model->getParameterByName('timeout')) ? $_->getValueAt(0)->getCppExpression() : 0.0;
+	my $profiling = ($_ = $model->getParameterByName('profiling')) ? $_->getValueAt(0)->getSPLExpression() : 'off';
+	my $autoReconnect = ($_ = $model->getParameterByName('autoReconnect')) ? $_->getValueAt(0)->getCppExpression() : 'true';
+
+	my $findFieldsExpr = undef;
+	my $findQueryExpr = ($_ = $model->getParameterByName('findQuery')) ? $_->getValueAt(0) : undef;
+	SPL::CodeGen::errorln("The type '%s' of findQuery parameter is not a string, map or tuple.", $findQueryExpr->getSPLType(), $findQueryExpr->getSourceLocation())
+		if (defined $findQueryExpr && BSONCommon::keyLess($findQueryExpr->getSPLType()) && not SPL::CodeGen::Type::isString($findQueryExpr->getSPLType()));
+
+	my $metricName = "nDeletes";
+	my $myOpParams = 'findQueryBO_('.((defined $findQueryExpr && not $findQueryExpr->hasStreamAttributes()) ? 'buildFindQueryBO()' : 'BSONObj()').')';
+%>
+
+@include "../Common/QueryCommon_cpp.cgt"
+@include "../Common/MongoOperator_cpp.cgt"
+
+void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
+	<%
+	my $numberOfInputPorts = $model->getNumberOfInputPorts();
+	for (my $i = 0; $i < $numberOfInputPorts; $i++) {%>
+	  IPort<%=$i%>Type const & <%=$model->getInputPortAt($i)->getCppTupleName()%> = static_cast<IPort<%=$i%>Type const&>(tuple);
+	<%}%>
+	streams_boost::shared_ptr<OPort0Type> otuplePtr;
+	bool errorFound = false;
+
+<%# [----- perl code -----]
+	foreach my $attribute (@{$model->getOutputPortAt(0)->getAttributes()}) {
+	  my $name = $attribute->getName();
+	  if ($attribute->hasAssignmentWithOutputFunction()) {
+		  my $operation = $attribute->getAssignmentOutputFunctionName();
+		  if ($operation eq 'AsIs') {
+			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
+		  %>
+			otuplePtr->set_<%=$name%>(<%=$init%>);
+		  <%}
+		  else {
+			
+			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
+			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
+			
+			if (defined $findQueryExpr && $findQueryExpr->hasStreamAttributes()) {%>
+				const BSONObj & findQueryBO = buildFindQueryBO(tuple);
+			<%}
+			else {%>
+				const BSONObj & findQueryBO = findQueryBO_;
+			<%}%>
+			
+			DBClientConnection * connPtr = getDBClientConnection(<%=$db%>, <%=$dbHost%>, <%=$dbPort%>);
+			
+			if(connPtr->isFailed()) {
+				if (<%=$autoReconnect%>) {
+					SPLAPPLOG(L_ERROR, "Trying to reconnect to " << <%=$dbHost%> << ":" << <%=$dbPort%>, "MongoDB Connect");
+					connPtr->isStillConnected();
+				}
+				else {
+					THROW(SPL::SPLRuntimeOperator, "Connection to " << <%=$dbHost%> << ":" << <%=$dbPort%> << " aborted");
+				}
+			}
+				
+			<%if ($profiling eq 'slow') {%>
+				connPtr->setDbProfilingLevel(<%=$db%>,  ProfileSlow);
+			<%} elsif ($profiling eq 'all') {%>
+				connPtr->setDbProfilingLevel(<%=$db%>,  ProfileAll);
+			<%}%>
+			
+			<%my $justOne = ($operation =~ /Document$/) ? 'true' : 'false';%>
+			connPtr->remove(buildDbCollection(<%=$db%>, <%=$collection%>), findQueryBO, <%=$justOne%>);
+			const string & errorMsg = connPtr->getLastError();
+			
+			if (errorMsg == "") {
+				nDeletesMetric_.incrementValue();
+			}
+			else {				
+				errorFound = true;
+				SPLAPPLOG(L_ERROR, errorMsg, "MongoDB Delete");
+				if(!otuplePtr){
+					otuplePtr = streams_boost::shared_ptr<OPort0Type>(new OPort0Type());
+				}
+				otuplePtr->set_<%=$name%>(errorMsg);
+			}
+		<%}
+	  }
+	}%>
+	if(errorFound) submit(*otuplePtr, 0);
+}
+
+@include "../Common/ThreadCommon_cpp.cgt"
+
+<%SPL::CodeGen::implementationEpilogue($model);%>

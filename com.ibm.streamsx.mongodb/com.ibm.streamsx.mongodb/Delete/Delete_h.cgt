@@ -1,0 +1,30 @@
+@include "../Common/MongoInclude_h.cgt"
+
+using namespace com::ibm::streamsx::mongodb;
+
+<%SPL::CodeGen::headerPrologue($model);%>
+
+@include "../Common/MongoInit_h.cgt"
+
+class MY_OPERATOR: public MY_BASE_OPERATOR {
+
+public:
+	MY_OPERATOR();
+	virtual ~MY_OPERATOR();
+
+	void allPortsReady();
+	void prepareToShutdown();
+
+	void process(Tuple const & tuple, uint32_t port);
+
+private:
+	Metric & nDeletesMetric_;
+
+	static streams_boost::thread_specific_ptr<DBClientConnection> connPtr_;
+	DBClientConnection * getDBClientConnection(const string& db, const string& dbHost, uint32_t dbPort);
+
+@include "../Common/QueryCommon_h.cgt"
+
+};
+
+<%SPL::CodeGen::headerEpilogue($model);%>

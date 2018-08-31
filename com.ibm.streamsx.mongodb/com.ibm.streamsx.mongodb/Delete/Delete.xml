@@ -3,22 +3,20 @@
   <cppOperatorModel>
     <context>
       <description>
-Update updates/upserts SPL data in MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
+Delete removes SPL data in MongoDB collection.
 The operator supports multiple threads.
 
-Update has four custom output function:
-* UpdateDocument updates data in one document (any SPL expression) with or without a specified root tag.
-* UpdateDocuments updates data in all documents (any SPL expression) with or without a specified root tag.
-* UpsertDocument upserts data in one document (any SPL expression) with or without a specified root tag.
-* UpsertDocuments upserts data in all documents (any SPL expression) with or without a specified root tag.
+Delete has four custom output function:
+* RemoveDocument removes data in one document.
+* RemoveDocuments removes data in all documents.
 
-Multiple input ports are allowed and their attributes can be used in multiple UpdateDocument calls, but cannot be mixed in the same call.
+Multiple input ports are allowed and their attributes can be used in multiple RemoveDocument calls, but cannot be mixed in the same call.
 
 One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
       </description>
       <metrics>
         <metric>
-          <name>nUpdates</name>
+          <name>nDeletes</name>
           <description></description>
           <kind>Counter</kind>
         </metric>
@@ -39,36 +37,12 @@ One output port is defined for use with custom output functions and optionally t
             <prototype>&lt;any T> T AsIs(T v)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>updates one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
-            <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, T data)</prototype>
+            <description>removes one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>rstring RemoveDocument(rstring db, rstring collection)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
-            <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, rstring key, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>updates all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
-            <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>updates all 'data' to 'db.coolection' with a 'key' as a root element.</description>
-            <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>upserts one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
-            <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
-            <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>upserts all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
-            <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, T data)</prototype>
-          </function>
-          <function pseudoFunction="true">
-            <description>upserts all 'data' to 'db.coolection' with a 'key' as a root element.</description>
-            <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+            <description>removes all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>rstring RemoveDocuments(rstring db, rstring collection)</prototype>
           </function>
         </customOutputFunction>
       </customOutputFunctions>
@@ -85,45 +59,24 @@ One output port is defined for use with custom output functions and optionally t
       <providesSingleThreadedContext>Always</providesSingleThreadedContext>
       <allowCustomLogic>false</allowCustomLogic>
       <codeTemplates>
-        <codeTemplate name="Update">
-          <description>Basic Update template</description>
-          <template>stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){
+        <codeTemplate name="Delete">
+          <description>Basic Delete template</description>
+          <template>stream&lt;rstring error> ${outputStream}1 = Delete(${inputStream}){
 	param
 		dbHost : &quot;localhost&quot;;
 	output ${outputStream} :
-		error = UpdateDocument(&quot;db&quot;, &quot;collection&quot;, attr);
+		error = RemoveDocument(&quot;db&quot;, &quot;collection&quot;);
 }
 </template>
         </codeTemplate>
-        <codeTemplate name="Update">
-          <description>Basic Update template</description>
-          <template>stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){
+        <codeTemplate name="Delete All">
+          <description>Delete All template</description>
+          <template>stream&lt;rstring error> ${outputStream}1 = Delete(${inputStream}){
 	param
 		dbHost : &quot;localhost&quot;;
 		findQuery : {someField = {&quot;$exists&quot;: true}};
 	output ${outputStream} :
-		error = UpdateDocuments(&quot;db&quot;, &quot;collection&quot;, &quot;$set&quot;, attr);
-}
-</template>
-        </codeTemplate>
-        <codeTemplate name="Update">
-          <description>Basic Update template</description>
-          <template>stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){
-	param
-		dbHost : &quot;localhost&quot;;
-	output ${outputStream} :
-		error = UpsertDocument(&quot;db&quot;, &quot;collection&quot;, attr);
-}
-</template>
-        </codeTemplate>
-        <codeTemplate name="Update">
-          <description>Basic Update template</description>
-          <template>stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){
-	param
-		dbHost : &quot;localhost&quot;;
-		findQuery : {someField = {&quot;$exists&quot;: true}};
-	output ${outputStream} :
-		error = UpsertDocuments(&quot;db&quot;, &quot;collection&quot;, &quot;$set&quot;, attr);
+		error = RemoveDocuments(&quot;db&quot;, &quot;collection&quot;);
 }
 </template>
         </codeTemplate>
@@ -225,7 +178,7 @@ One output port is defined for use with custom output functions and optionally t
     </parameters>
     <inputPorts>
       <inputPortOpenSet>
-        <description>The Update operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
+        <description>The Delete operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
         <windowingDescription></windowingDescription>
         <tupleMutationAllowed>false</tupleMutationAllowed>
         <windowingMode>NonWindowed</windowingMode>
@@ -234,7 +187,7 @@ One output port is defined for use with custom output functions and optionally t
     </inputPorts>
     <outputPorts>
       <outputPortSet>
-        <description>The Update operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
+        <description>The Delete operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
         <expressionMode>Expression</expressionMode>
         <autoAssignment>false</autoAssignment>
         <completeAssignment>false</completeAssignment>

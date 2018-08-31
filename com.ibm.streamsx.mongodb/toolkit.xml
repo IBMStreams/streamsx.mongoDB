@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="4.2.1.3" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:ti="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-  <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="4.0" version="1.4.0">
+  <toolkit name="com.ibm.streamsx.mongodb" requiredProductVersion="4.0" version="2.0.0">
     <description>
 Support for [http://www.mongodb.org|MongoDB] database.
 
@@ -32,6 +32,7 @@ Below a table for BSON/SPL conversion:
     <uriTable>
       <uri index="1" value="com.ibm.streamsx.mongodb/Types.spl"/>
       <uri index="2" value="com.ibm.streamsx.mongodb/Query"/>
+      <uri index="5" value="com.ibm.streamsx.mongodb/Delete"/>
       <uri index="3" value="com.ibm.streamsx.mongodb/Update"/>
       <uri index="4" value="com.ibm.streamsx.mongodb/Insert"/>
     </uriTable>
@@ -270,6 +271,15 @@ One output port is defined for use with custom output functions and optionally t
         <codeTemplate name="Update" template="stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = UpdateDocument(&quot;db&quot;, &quot;collection&quot;, attr);&#xA;}&#xA;">
           <description>Basic Update template</description>
         </codeTemplate>
+        <codeTemplate name="Update" template="stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;&#x9;findQuery : {someField = {&quot;$exists&quot;: true}};&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = UpdateDocuments(&quot;db&quot;, &quot;collection&quot;, &quot;$set&quot;, attr);&#xA;}&#xA;">
+          <description>Basic Update template</description>
+        </codeTemplate>
+        <codeTemplate name="Update" template="stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = UpsertDocument(&quot;db&quot;, &quot;collection&quot;, attr);&#xA;}&#xA;">
+          <description>Basic Update template</description>
+        </codeTemplate>
+        <codeTemplate name="Update" template="stream&lt;rstring error> ${outputStream}1 = Update(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;&#x9;findQuery : {someField = {&quot;$exists&quot;: true}};&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = UpsertDocuments(&quot;db&quot;, &quot;collection&quot;, &quot;$set&quot;, attr);&#xA;}&#xA;">
+          <description>Basic Update template</description>
+        </codeTemplate>
       </primitiveOp>
       <primitiveOp language="Cpp" modelUriIndex="4" name="Insert" public="true">
         <description>
@@ -347,6 +357,88 @@ One output port is defined for use with custom output functions and optionally t
         </outputPort>
         <codeTemplate name="Insert" template="stream&lt;rstring error> ${outputStream}1 = Insert(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = InsertDocument(&quot;db&quot;, &quot;collection&quot;, attr);&#xA;}&#xA;">
           <description>Basic Insert template</description>
+        </codeTemplate>
+      </primitiveOp>
+      <primitiveOp language="Cpp" modelUriIndex="5" name="Delete" public="true">
+        <description>
+Delete removes SPL data in MongoDB collection.
+The operator supports multiple threads.
+
+Delete has four custom output function:
+* RemoveDocument removes data in one document.
+* RemoveDocuments removes data in all documents.
+
+Multiple input ports are allowed and their attributes can be used in multiple RemoveDocument calls, but cannot be mixed in the same call.
+
+One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
+      </description>
+        <customLiterals name="ProfilingLevel">
+          <value name="off"/>
+          <value name="slow"/>
+          <value name="all"/>
+        </customLiterals>
+        <outputFunctions name="MongoFS">
+          <function name="AsIs" returnType="T">
+            <description>a default assignment</description>
+            <prototype>&lt;any T&gt; T AsIs(T v)</prototype>
+            <parameter name="v" type="T"/>
+          </function>
+          <function name="RemoveDocument" returnType="rstring">
+            <description>removes one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>rstring RemoveDocument(rstring db, rstring collection)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+          </function>
+          <function name="RemoveDocuments" returnType="rstring">
+            <description>removes all 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
+            <prototype>rstring RemoveDocuments(rstring db, rstring collection)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+          </function>
+        </outputFunctions>
+        <parametersDescription/>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="authentication" optional="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>">
+          <description>The optional Authentication_t parameter specifies MongoDB authentication parameters.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="username" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="password" optional="true" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbHost" optional="false" type="rstring">
+          <description>The mandatory 'rstring' parameter specifies MongoDB server host.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="dbPort" optional="true" type="uint32">
+          <description>The optional 'uint32' parameter specifies MongoDB server listener port. Default value is 27017.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="Expression" name="findQuery" optional="true" type="">
+          <description>The optional map or tuple parameter specifies a [http://docs.mongodb.org/manual/reference/operator/query|query] to get specific data from MongoDB collection.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="timeout" optional="true" type="float64">
+          <description>The optional 'float64' parameter specifies connection timeout. Default value is 0.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="autoReconnect" optional="true" type="boolean">
+          <description>The optional 'boolean' parameter specifies if try to reconnect when connection failed.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="CustomLiteral" name="profiling" optional="true" type="ProfilingLevel">
+          <description>The optional ProfilingLevel parameter specifies profiling level. Default value is off.</description>
+        </parameter>
+        <parameter cardinality="1" expressionMode="AttributeFree" name="sslOptions" optional="true" type="tuple&lt;boolean sslMode, rstring caFile, rstring pemKeyFile, rstring pemKeyPassword, rstring crlFile, boolean allowInvalidCertificates, boolean allowInvalidHostnames>">
+          <description>The optional SSLOptions_t parameter specifies MongoDB SSL parameters.</description>
+        </parameter>
+        <inputPort minNumPorts="0" optional="true" windowPunctInputMode="Oblivious">
+          <description>The Delete operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.</description>
+          <windowPolicy>NonWindowed</windowPolicy>
+        </inputPort>
+        <outputPort expressionMode="Expression" maxNumPorts="1" minNumPorts="1" optional="false" windowPunctOutputMode="Free">
+          <description>The Delete operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.</description>
+        </outputPort>
+        <codeTemplate name="Delete" template="stream&lt;rstring error> ${outputStream}1 = Delete(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = RemoveDocument(&quot;db&quot;, &quot;collection&quot;);&#xA;}&#xA;">
+          <description>Basic Delete template</description>
+        </codeTemplate>
+        <codeTemplate name="Delete All" template="stream&lt;rstring error> ${outputStream}1 = Delete(${inputStream}){&#xA;&#x9;param&#xA;&#x9;&#x9;dbHost : &quot;localhost&quot;;&#xA;&#x9;&#x9;findQuery : {someField = {&quot;$exists&quot;: true}};&#xA;&#x9;output ${outputStream} :&#xA;&#x9;&#x9;error = RemoveDocuments(&quot;db&quot;, &quot;collection&quot;);&#xA;}&#xA;">
+          <description>Delete All template</description>
         </codeTemplate>
       </primitiveOp>
       <type column="6" line="20" name="Authentication_t" static="true" type="tuple&lt;rstring mechanism, rstring user, rstring pwd, rstring db, boolean digestPassword, rstring serviceName, rstring serviceHostname>" uriIndex="1"/>
