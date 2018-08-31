@@ -56,19 +56,12 @@ composite HelloWorldUpdateSample {
 
         	output MongoSink :
         		/**
-				 * Store a tuple as is, the resulting document is:
-				 * { "_id" : ObjectId("53c795f7e66ebea0c454c80f"), "greeting1" : "Hello world" }
+				 * Update/Upsert samples:
 				 */
-        		error1 = UpdateDocument("streams", "sample", B1Stream);
-//        		error1 = UpsertDocuments("streams", "sample", "$set", B2Stream);
-//        		error3 = UpsertDocument("streams", "sample", B1Stream);
-
-
-        		/**
-				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
-				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
-				 */
-//        		error2 = UpdateDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"});
+        		error1 = UpdateDocument("streams", "sample", B1Stream); // Updates one document where 'greeting1' exists
+//        		error1 = UpdateDocuments("streams", "sample", B1Stream); // Updates all documents where 'greeting1' exists
+//        		error1 = UpsertDocument("streams", "sample", "$set", B2Stream); // Upserts one document where 'greeting1' exists
+//        		error1 = UpsertDocuments("streams", "sample", "$set", B2Stream); // Upserts all document where 'greeting1' exists
         }
         
 		/**
