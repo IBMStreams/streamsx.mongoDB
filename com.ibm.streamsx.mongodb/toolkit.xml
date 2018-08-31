@@ -7,7 +7,7 @@ Support for [http://www.mongodb.org|MongoDB] database.
 
 MongoDB is an open-source document-oriented NoSQL database.
 [http://bsonspec.org|BSON] is a binary serialization JSON-like format used to store documents and make remote procedure calls in MongoDB.
-This toolkit provides MongoDB insert/query functionality where SPL to/from BSON conversion is generated automatically.
+This toolkit provides MongoDB insert/query/update/delete functionality where SPL to/from BSON conversion is generated automatically.
 
 Below a table for BSON/SPL conversion:
 
