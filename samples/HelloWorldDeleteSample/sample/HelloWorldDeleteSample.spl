@@ -1,0 +1,74 @@
+namespace sample;
+
+use com.ibm.streamsx.mongodb::*;
+
+/**
+* Run two beacons to create different inputs.
+* Look inside [HelloWorldDeleteSample] SPL code to see different uses of RemoveDocument with the description.
+*/
+composite HelloWorldDeleteSample {
+	graph
+		stream<rstring greeting1> B1Stream = Beacon()  {
+            param iterations: 1;
+            output B1Stream :
+            	greeting1 = "HELLO WORLD";
+        }
+        
+		stream<rstring greeting2> B2Stream = Beacon()  {
+            param iterations: 1;
+            output B2Stream :
+            	greeting2 = "Hello again";
+        }
+        
+        stream<rstring error1> MongoSink = Delete(B1Stream; B2Stream) {
+        	param
+        		dbHost : "localhost";
+        		findQuery : {greeting1 = {"$exists": true}};
+        	/*
+        	 * Uncomment authentication parameter for custom authentication method
+        	 */
+
+//        		authentication : {mechanism = getSubmissionTimeValue("mechanism", "SCRAM-SHA-1"),
+//        						  user = getSubmissionTimeValue("username", "mongouser"),
+//        						  pwd = getSubmissionTimeValue("password", "passw0rd"),
+//        						  db = getSubmissionTimeValue("adminDB", "admin"),
+//        						  digestPassword = (boolean)getSubmissionTimeValue("digestPassword", "true"),
+//        						  serviceName = getSubmissionTimeValue("serviceName", ""),
+//        						  serviceHostname = getSubmissionTimeValue("serviceHostname", "")};
+
+
+        	/*
+        	 * Uncomment sslOptions parameter to configure SSL
+        	 */
+				// Create etc directory and add there PEM file.
+//        		sslOptions : {sslMode = true, caFile = "", pemKeyFile = getThisToolkitDir() + "/etc/mongodb.pem", pemKeyPassword = "", crlFile = "", allowInvalidCertificates = false, allowInvalidHostnames = false};
+
+        	/*
+        	 * Uncomment username/password parameters for a default authentication method
+        	 */
+        		username : getSubmissionTimeValue("username", "mongouser");
+        		password : getSubmissionTimeValue("password", "passw0rd");
+
+        	/*
+        	 * Uncomment profiling parameter to enable profiling mode
+        	 */
+//        		profiling : all;
+
+        	output MongoSink :
+        		/**
+				 * RemoveDocument/RemoveDocuments samples:
+				 */
+        		error1 = RemoveDocument("streams", "sample"); // Removes one document where 'greeting1' exists
+//        		error1 = RemoveDocuments("streams", "sample"); // Removes all documents where 'greeting1' exists
+        }
+        
+		/**
+		 * Will be called when at least one error occured
+		 */
+        () as ErrorSink = FileSink(MongoSink)   {
+            param
+                file : "/dev/stdout";
+                flush : 1u;
+                quoteStrings : false;
+        }
+}

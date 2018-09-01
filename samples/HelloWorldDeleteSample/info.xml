@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info:toolkitInfoModel xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:info="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo">
   <info:identity>
-    <info:name>com.ibm.streamsx.mongodb.HelloWorldUpdateSample</info:name>
-    <info:description>Hello world Update sample application.</info:description>
+    <info:name>com.ibm.streamsx.mongodb.HelloWorldDeleteSample</info:name>
+    <info:description>Hello world Delete sample application.</info:description>
     <info:version>1.0.0</info:version>
     <info:requiredProductVersion>3.2.1.1</info:requiredProductVersion>
   </info:identity>
