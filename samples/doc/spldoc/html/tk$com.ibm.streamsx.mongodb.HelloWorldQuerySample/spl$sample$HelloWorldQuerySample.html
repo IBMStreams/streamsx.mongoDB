@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en-us" lang="en-us">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="copyright" content="(C) Copyright 2005"/>
+<meta name="DC.rights.owner" content="(C) Copyright 2005"/>
+<meta name="DC.Type" content="reference"/>
+<meta name="DC.Title" content="SPL File HelloWorldQuerySample.spl"/>
+<meta name="DC.Format" content="XHTML"/>
+<meta name="DC.Identifier" content="spldoc_compilationunit"/>
+<link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
+<link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
+<title>SPL File HelloWorldQuerySample.spl</title>
+</head>
+<body id="spldoc_compilationunit">
+
+
+<h1 class="title topictitle1">SPL File <tt class="ph tt">HelloWorldQuerySample.spl</tt></h1>
+
+<div class="body refbody">
+<div class="section">
+<p class="p">
+<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.HelloWorldQuerySample.html">com.ibm.streamsx.mongodb.HelloWorldQuerySample 1.0.0</a> &gt; <a class="xref" href="ns$sample.html">sample</a> &gt; HelloWorldQuerySample.spl</p>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle splhead-1">Content</h2>
+  
+  <dl class="dl">
+    <dt class="dt dlterm"/>
+<dd class="dd"/>
+
+    
+      <dt class="dt dlterm splhead-2">Operators</dt>
+
+      <dd class="dd">
+<ul class="sl simple">
+<li class="sli"><strong class="ph b"><a class="xref" href="spl$sample$HelloWorldQuerySample.html#spldoc_compilationunit__composite_operator__HelloWorldQuerySample">HelloWorldQuerySample</a></strong>: Run beacon optionally specifing query string.
+</li>
+
+</ul>
+
+      </dd>
+
+    
+  </dl>
+
+</div>
+
+<div class="section"><h2 class="title sectiontitle splhead-1">Composites</h2>
+  
+</div>
+
+<div class="section" id="spldoc_compilationunit__composite_operator__HelloWorldQuerySample"><h2 class="title sectiontitle splpart">public composite HelloWorldQuerySample</h2>
+  
+</div>
+
+<div class="section splgraph">
+  <embed class="image" src="../../image/tk$com.ibm.streamsx.mongodb.HelloWorldQuerySample/op$sample$HelloWorldQuerySample.svg" width="337" height="109"/>
+</div>
+
+<div class="section">
+
+<p class="p">Run beacon optionally specifing query string. Look inside <a class="xref" href="spl$sample$HelloWorldQuerySample.html#spldoc_compilationunit__composite_operator__HelloWorldQuerySample">HelloWorldQuerySample</a> SPL code to see different uses of QueryDocumentField, QueryDocumentFieldAsJson and QueryDocumentMultipleFields with the description. 
+</p>
+
+</div>
+
+<div class="section">
+</div>
+
+<div class="section">
+</div>
+
+<div class="section">
+</div>
+
+<div class="section"><h2 class="title sectiontitle splhead-2">SPL Source Code</h2>
+  
+</div>
+
+
+<div class="section">
+   <pre class="pre codeblock">
+
+ composite HelloWorldQuerySample {
+ 	graph
+ 		stream&lt;tuple&lt;map&lt;rstring,int32&gt; aa&gt; query&gt; beaconOutStream = Beacon()  {
+             param iterations: 1;
+             output beaconOutStream :
+             	query = {aa = {"$type": 3}};
+         }
+         
+  		/**
+  		 * The "streams.sample" has the following documents (inserted by HelloWorldInsertSample):
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87b"), "greeting1" : "Hello world" }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87c"), "greeting3" : "Hello world" }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87d"), "greeting2" : { "greeting2" : "Hello again" } }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87e"), "greeting4" : [  "Hello",  "world" ] }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c87f"), "greeting4" : [  "Hello",  "world" ] }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c880"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+ 		 * { "_id" : ObjectId("53e243e2e66ebea0c454c881"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
+ 		 */
+ 
+  		/**
+ 		 * Get all documents, assign 'greeting1' string field if exists, the resulting tuple is:
+ 		 * { greeting1 = "Hello world" }
+ 		 */
+         stream&lt;rstring greeting1&gt; QueryResult1 as QueryResult = Query(beaconOutStream) {
+         	param
+         		dbHost : "localhost";
+         		dbName : "streams";
+         		collection : "sample";
+         		
+         	/*
+         	 * Uncomment authentication parameter for custom authentication method
+         	 */
+ 
+ //        		authentication : {mechanism = getSubmissionTimeValue("mechanism", "SCRAM-SHA-1"),
+ //        						  user = getSubmissionTimeValue("username", "mongouser"),
+ //        						  pwd = getSubmissionTimeValue("password", "passw0rd"),
+ //        						  db = getSubmissionTimeValue("adminDB", "admin"),
+ //        						  digestPassword = (boolean)getSubmissionTimeValue("digestPassword", "true"),
+ //        						  serviceName = getSubmissionTimeValue("serviceName", ""),
+ //        						  serviceHostname = getSubmissionTimeValue("serviceHostname", "")};
+ 
+ 
+         	/*
+         	 * Uncomment sslOptions parameter to configure SSL
+         	 */
+ 
+ 				// Create etc directory and add there PEM file.
+ //        		sslOptions : {sslMode = true, caFile = "", pemKeyFile = getThisToolkitDir() + "/etc/mongodb.pem", pemKeyPassword = "", crlFile = "", allowInvalidCertificates = false, allowInvalidHostnames = false};
+ 
+ 
+         	/*
+         	 * Uncomment username/password parameters for a default authentication method
+         	 */
+         		username : getSubmissionTimeValue("username", "mongouser");
+         		password : getSubmissionTimeValue("password", "passw0rd");
+ 
+         	/*
+         	 * Uncomment profiling parameter to enable profiling mode
+         	 */
+ //        		profiling : all;
+ 
+         	output QueryResult :
+         		greeting1 = QueryDocumentField();
+         }
+ 
+        () as DSink = FileSink(QueryResult1)   {
+             param
+                 file : "/dev/stdout";
+                 flush : 1u;
+                 quoteStrings : false;
+         }
+ 
+  		/**
+ 		 * Get all documents, assign each document as JSON, drop _id field.
+ 		 */
+ //        stream&lt;rstring json&gt; QueryResult2 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        		findFields : {"_id" : 0};
+ //        	output QueryResult :
+ //        		json = QueryDocumentFieldAsJson();
+ //        }
+         
+ // 		/**
+ //		 * Get all documents, assign 'greeting4' array field if exists, the resulting tuples are:
+ //		 * {greeting4=["Hello","world"]}
+ //		 * {greeting4=["Hello","world"]}
+ //		 */
+ //        stream&lt;list&lt;rstring&gt; greeting4&gt; QueryResult3 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        	output QueryResult :
+ //        		greeting4 = QueryDocumentField();
+ //        }
+ //        
+ // 		/**
+ //		 * Get only documents where 'greeting2' map&lt;rstring,rstring&gt; field exists, assign it, the resulting tuple is:
+ //		 * {greeting2={"greeting2":"Hello again"}}
+ //		 */
+ //        stream&lt;map&lt;rstring,rstring&gt; greeting2&gt; QueryResult4 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        		findQuery : {greeting2 = {"$exists": true}};
+ //        	output QueryResult :
+ //        		greeting2 = QueryDocumentField();
+ //        }
+ //        
+ // 		/**
+ //		 * Get one partial document where 'greeting5_1' rstring field exists, assign it, the resulting tuple is:
+ //		 * {greeting5_1="Hello"}
+ //		 */
+ //        stream&lt;rstring greeting5_1&gt; QueryResult5 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        		findFields : {"greeting5_1" : 1};
+ //        		findQuery : {greeting5_1 = {"$exists": true}};
+ //        		nToReturn : 1u;
+ //        	output QueryResult :
+ //        		greeting5_1 = QueryDocumentField();
+ //        }
+ //        
+ // 		/**
+ //		 * Get only documents where 'greeting2' field exists, fetch 'greeting2' from path 'greeting2', the resulting tuple is:
+ //		 * {greeting2="Hello again"}
+ //		 */
+ //        stream&lt;rstring greeting2&gt; QueryResult6 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        		findQuery : {greeting2 = {"$exists": true}};
+ //        	output QueryResult :
+ //        		greeting2 = QueryDocumentField("greeting2");
+ //        }
+ //        
+ // 		/**
+ //		 * Get all documents with flat structure, the resulting tuple is:
+ //		 * {allDocs={"greeting1":"Hello world"}}
+ //		 * {allDocs={"greeting1":"Hello world"}}
+ //		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+ //		 * {allDocs={"greeting5_1":"Hello","greeting5_2":"world"}}
+ //		 */
+ //        stream&lt;map&lt;rstring,rstring&gt; allDocs&gt; QueryResult7 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        	output QueryResult :
+ //        		allDocs = QueryDocumentMultipleFields();
+ //        }
+ //
+ // 		/**
+ //		 * Get all documents where 'greeting2.greeting2' rstring field exists,
+ //		 * assign the value to 'field' (aka 'field' is alias name to 'greeting2.greeting2'), the resulting tuple is:
+ //		 * {field="Hello again"}
+ //		 */
+ //        stream&lt;rstring field&gt; QueryResult8 as QueryResult = Query(beaconOutStream) {
+ //        	param
+ //        		dbHost : "localhost";
+ //        		dbName : "streams";
+ //        		collection : "sample";
+ //        		findQuery : {"greeting2.greeting2" : {"$exists": true}};
+ //        	output QueryResult :
+ //        		field = QueryDocumentMultipleFields("greeting2.greeting2");
+ //        }
+ }
+
+   </pre>
+
+</div>
+
+</div>
+
+
+</body>
+</html>

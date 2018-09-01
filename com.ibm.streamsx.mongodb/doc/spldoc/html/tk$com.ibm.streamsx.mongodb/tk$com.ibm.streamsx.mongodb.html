@@ -7,22 +7,22 @@
 <meta name="copyright" content="(C) Copyright 2005"/>
 <meta name="DC.rights.owner" content="(C) Copyright 2005"/>
 <meta name="DC.Type" content="reference"/>
-<meta name="DC.Title" content="Toolkit com.ibm.streamsx.mongodb 1.3.0"/>
+<meta name="DC.Title" content="Toolkit com.ibm.streamsx.mongodb 2.0.0"/>
 <meta name="DC.Format" content="XHTML"/>
 <meta name="DC.Identifier" content="spldoc_toolkit"/>
 <link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
 <link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
-<title>Toolkit com.ibm.streamsx.mongodb 1.3.0</title>
+<title>Toolkit com.ibm.streamsx.mongodb 2.0.0</title>
 </head>
 <body id="spldoc_toolkit">
 
 
-<h1 class="title topictitle1 spltoolkitname">Toolkit <tt class="ph tt">com.ibm.streamsx.mongodb 1.3.0</tt></h1>
+<h1 class="title topictitle1 spltoolkitname">Toolkit <tt class="ph tt">com.ibm.streamsx.mongodb 2.0.0</tt></h1>
 
 <div class="body refbody">
 <div class="section">
 <p class="p">
-<a class="xref" href="../toolkits/toolkits.html">MongoDB toolkit documentation</a> &gt; com.ibm.streamsx.mongodb 1.3.0</p>
+<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; com.ibm.streamsx.mongodb 2.0.0</p>
 
 </div>
 
@@ -32,7 +32,7 @@
 <p class="p">Support for <a class="xref" href="http://www.mongodb.org">MongoDB</a> database.
 </p>
 
-<p class="p">MongoDB is an open-source document-oriented NoSQL database. <a class="xref" href="http://bsonspec.org">BSON</a> is a binary serialization JSON-like format used to store documents and make remote procedure calls in MongoDB. This toolkit provides MongoDB insert/query functionality where SPL to/from BSON conversion is generated automatically.
+<p class="p">MongoDB is an open-source document-oriented NoSQL database. <a class="xref" href="http://bsonspec.org">BSON</a> is a binary serialization JSON-like format used to store documents and make remote procedure calls in MongoDB. This toolkit provides MongoDB insert/query/update/delete functionality where SPL to/from BSON conversion is generated automatically.
 </p>
 
 <p class="p">Below a table for BSON/SPL conversion:
@@ -71,19 +71,13 @@ Object	Tuple/Map
   
   <dt class="dt dlterm">Version</dt>
 
-  <dd class="dd">1.3.0</dd>
+  <dd class="dd">2.0.0</dd>
 
   
   
   <dt class="dt dlterm">Required Product Version</dt>
 
   <dd class="dd">4.0</dd>
-
-  
-  
-  <dt class="dt dlterm">Author</dt>
-
-  <dd class="dd">Leonid Gorelik</dd>
 
   
 </dl>
@@ -122,9 +116,13 @@ Object	Tuple/Map
 
         <dd class="dd">
 <ul class="sl simple">
+<li class="sli"><a class="xref" href="op$com.ibm.streamsx.mongodb$Delete.html">Delete</a></li>
+
 <li class="sli"><a class="xref" href="op$com.ibm.streamsx.mongodb$Insert.html">Insert</a></li>
 
 <li class="sli"><a class="xref" href="op$com.ibm.streamsx.mongodb$Query.html">Query</a></li>
+
+<li class="sli"><a class="xref" href="op$com.ibm.streamsx.mongodb$Update.html">Update</a></li>
 
 </ul>
 
@@ -139,6 +137,8 @@ Object	Tuple/Map
         <dd class="dd">
 <ul class="sl simple">
 <li class="sli"><a class="xref" href="spl$com.ibm.streamsx.mongodb$Types.html#spldoc_compilationunit__type__Authentication_t">Authentication_t</a></li>
+
+<li class="sli"><a class="xref" href="spl$com.ibm.streamsx.mongodb$Types.html#spldoc_compilationunit__type__SSLOptions_t">SSLOptions_t</a></li>
 
 </ul>
 

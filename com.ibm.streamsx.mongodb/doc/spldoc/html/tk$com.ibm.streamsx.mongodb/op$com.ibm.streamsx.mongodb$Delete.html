@@ -7,43 +7,45 @@
 <meta name="copyright" content="(C) Copyright 2005"/>
 <meta name="DC.rights.owner" content="(C) Copyright 2005"/>
 <meta name="DC.Type" content="reference"/>
-<meta name="DC.Title" content="Operator Insert"/>
+<meta name="DC.Title" content="Operator Delete"/>
 <meta name="DC.Format" content="XHTML"/>
 <meta name="DC.Identifier" content="spldoc_operator"/>
 <link rel="stylesheet" type="text/css" href="../../html/commonltr.css"/>
 <link rel="stylesheet" type="text/css" href="../../html/spldoc.css"/>
-<title>Operator Insert</title>
+<title>Operator Delete</title>
 </head>
 <body id="spldoc_operator">
 
 
-<h1 class="title topictitle1">Operator <tt class="ph tt">Insert</tt></h1>
+<h1 class="title topictitle1">Operator <tt class="ph tt">Delete</tt></h1>
 
 <div class="body refbody">
 <div class="section">
 <p class="p">
-<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Insert</p>
+<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Delete</p>
 
 </div>
 
 <div class="section splprimop">
-  <embed class="image" src="../../image/tk$com.ibm.streamsx.mongodb/op$com.ibm.streamsx.mongodb$Insert.svg" width="872" height="112"/>
+  <embed class="image" src="../../image/tk$com.ibm.streamsx.mongodb/op$com.ibm.streamsx.mongodb$Delete.svg" width="872" height="112"/>
 </div>
 
 <div class="section">
 
-<p class="p">Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format. The operator supports multiple threads.
+<p class="p">Delete removes SPL data in MongoDB collection. The operator supports multiple threads.
 </p>
 
-<div class="p">Insert has one custom output function:
+<div class="p">Delete has four custom output function:
 <ul class="ul">
-<li class="li"> InsertDocument writes data (any SPL expression) with or without a specified root tag.</li>
+<li class="li"> RemoveDocument removes data in one document.</li>
+
+<li class="li"> RemoveDocuments removes data in all documents.</li>
 
 </ul>
 
 </div>
 
-<p class="p">Multiple input ports are allowed and their attributes can be used in multiple InsertDocument calls, but cannot be mixed in the same call.
+<p class="p">Multiple input ports are allowed and their attributes can be used in multiple RemoveDocument calls, but cannot be mixed in the same call.
 </p>
 
 <p class="p">One output port is defined for use with custom output functions and optionally to propogate returned errors downstream.
@@ -69,14 +71,14 @@
  
   <dt class="dt dlterm">Parameters</dt>
 
-  <dd class="dd">This operator supports 9 parameters.
+  <dd class="dd">This operator supports 10 parameters.
 <p class="p"> Required: 
 <a class="xref" href="#spldoc_operator__parameter__dbHost">dbHost</a>
 
 </p>
 
 <p class="p"> Optional: 
-<a class="xref" href="#spldoc_operator__parameter__authentication">authentication</a>, <a class="xref" href="#spldoc_operator__parameter__autoReconnect">autoReconnect</a>, <a class="xref" href="#spldoc_operator__parameter__dbPort">dbPort</a>, <a class="xref" href="#spldoc_operator__parameter__password">password</a>, <a class="xref" href="#spldoc_operator__parameter__profiling">profiling</a>, <a class="xref" href="#spldoc_operator__parameter__sslOptions">sslOptions</a>, <a class="xref" href="#spldoc_operator__parameter__timeout">timeout</a>, <a class="xref" href="#spldoc_operator__parameter__username">username</a>
+<a class="xref" href="#spldoc_operator__parameter__authentication">authentication</a>, <a class="xref" href="#spldoc_operator__parameter__autoReconnect">autoReconnect</a>, <a class="xref" href="#spldoc_operator__parameter__dbPort">dbPort</a>, <a class="xref" href="#spldoc_operator__parameter__findQuery">findQuery</a>, <a class="xref" href="#spldoc_operator__parameter__password">password</a>, <a class="xref" href="#spldoc_operator__parameter__profiling">profiling</a>, <a class="xref" href="#spldoc_operator__parameter__sslOptions">sslOptions</a>, <a class="xref" href="#spldoc_operator__parameter__timeout">timeout</a>, <a class="xref" href="#spldoc_operator__parameter__username">username</a>
 
 </p>
 </dd>
@@ -118,7 +120,7 @@
 
    <dd class="dd">
 
-<p class="p">The Insert operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.
+<p class="p">The Delete operator is configurable with multiple input ports. The input ports are non-mutating and their punctuation mode is Oblivious.
 </p>
 
    <dl class="dl">
@@ -191,11 +193,11 @@
 
                         
               <dt class="dt dlterm">
-                <tt class="ph tt">   &lt;any T&gt; rstring InsertDocument(rstring db, rstring collection, T data)</tt>              </dt>
+                <tt class="ph tt">   rstring RemoveDocument(rstring db, rstring collection)</tt>              </dt>
 
             <dd class="dd">
 
-<p class="p">writes 'data' to 'db.coolection'. T can be of type tuple or map only.
+<p class="p">removes one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.
 </p>
               <p class="p"/>
 
@@ -203,11 +205,11 @@
 
                         
               <dt class="dt dlterm">
-                <tt class="ph tt">   &lt;any T&gt; rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</tt>              </dt>
+                <tt class="ph tt">   rstring RemoveDocuments(rstring db, rstring collection)</tt>              </dt>
 
             <dd class="dd">
 
-<p class="p">writes 'data' to 'db.coolection' with a 'key' as a root element.
+<p class="p">removes all 'data' in 'db.coolection'. T can be of type tuple or map only.
 </p>
               <p class="p"/>
 
@@ -229,7 +231,7 @@
 
    <dd class="dd">
 
-<p class="p">The Insert operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.
+<p class="p">The Delete operator is configurable with one output port. The output port is non-mutating and their punctuation mode is Free.
 </p>
 
     <p class="p"/>
@@ -276,7 +278,7 @@
 </p>
 
 <p class="p"> Optional: 
-<a class="xref" href="#spldoc_operator__parameter__authentication">authentication</a>, <a class="xref" href="#spldoc_operator__parameter__autoReconnect">autoReconnect</a>, <a class="xref" href="#spldoc_operator__parameter__dbPort">dbPort</a>, <a class="xref" href="#spldoc_operator__parameter__password">password</a>, <a class="xref" href="#spldoc_operator__parameter__profiling">profiling</a>, <a class="xref" href="#spldoc_operator__parameter__sslOptions">sslOptions</a>, <a class="xref" href="#spldoc_operator__parameter__timeout">timeout</a>, <a class="xref" href="#spldoc_operator__parameter__username">username</a>
+<a class="xref" href="#spldoc_operator__parameter__authentication">authentication</a>, <a class="xref" href="#spldoc_operator__parameter__autoReconnect">autoReconnect</a>, <a class="xref" href="#spldoc_operator__parameter__dbPort">dbPort</a>, <a class="xref" href="#spldoc_operator__parameter__findQuery">findQuery</a>, <a class="xref" href="#spldoc_operator__parameter__password">password</a>, <a class="xref" href="#spldoc_operator__parameter__profiling">profiling</a>, <a class="xref" href="#spldoc_operator__parameter__sslOptions">sslOptions</a>, <a class="xref" href="#spldoc_operator__parameter__timeout">timeout</a>, <a class="xref" href="#spldoc_operator__parameter__username">username</a>
 
 </p>
 <dl class="dl">
@@ -407,6 +409,41 @@
      </li>
 
      <li class="sli"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__parameters__parameter__expressionmode">ExpressionMode</a>: AttributeFree
+     </li>
+
+   </ul>
+
+     <p class="p"/>
+     </dd>
+
+    
+  </dl>
+
+     </dd>
+
+  
+  
+     <dt class="dt dlterm"><a name="spldoc_operator__parameter__findQuery"><!-- --></a><tt class="ph tt">findQuery</tt></dt>
+
+     <dd class="dd">
+<p class="p">The optional map or tuple parameter specifies a <a class="xref" href="http://docs.mongodb.org/manual/reference/operator/query">query</a> to get specific data from MongoDB collection.
+</p>
+
+  <dl class="dl">
+    
+     <dt class="dt dlterm">Properties</dt>
+
+     <dd class="dd">   <ul class="sl simple">
+     <li class="sli"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__parameters__parameter__type">Type</a>
+     </li>
+
+     <li class="sli"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__parameters__parameter__cardinality">Cardinality</a>: 1
+     </li>
+
+     <li class="sli"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__parameters__parameter__optional">Optional</a>: true
+     </li>
+
+     <li class="sli"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__parameters__parameter__expressionmode">ExpressionMode</a>: Expression
      </li>
 
    </ul>
@@ -603,15 +640,35 @@
 <p class="p splhead-1"><strong class="ph b"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__context__codetemplate">Code Templates</a></strong></p>
   <dl class="dl">
     
-     <dt class="dt dlterm">Insert</dt>
+     <dt class="dt dlterm">Delete</dt>
 
      <dd class="dd">
        <pre class="pre codeblock">
-stream&lt;rstring error&gt; ${outputStream}1 = Insert(${inputStream}){
+stream&lt;rstring error&gt; ${outputStream}1 = Delete(${inputStream}){
 	param
 		dbHost : "localhost";
 	output ${outputStream} :
-		error = InsertDocument("db", "collection", attr);
+		error = RemoveDocument("db", "collection");
+}
+
+      </pre>
+
+     <p class="p"/>
+
+     </dd>
+
+    
+    
+     <dt class="dt dlterm">Delete All</dt>
+
+     <dd class="dd">
+       <pre class="pre codeblock">
+stream&lt;rstring error&gt; ${outputStream}1 = Delete(${inputStream}){
+	param
+		dbHost : "localhost";
+		findQuery : {someField = {"$exists": true}};
+	output ${outputStream} :
+		error = RemoveDocuments("db", "collection");
 }
 
       </pre>
@@ -629,7 +686,7 @@ stream&lt;rstring error&gt; ${outputStream}1 = Insert(${inputStream}){
 <p class="p splhead-1"><strong class="ph b"><a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__context__metrics">Metrics</a></strong></p>
 <dl class="dl">
   
-    <dt class="dt dlterm"><tt class="ph tt">nInserts</tt> - <a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__context__metrics_kind_counter">Counter</a></dt>
+    <dt class="dt dlterm"><tt class="ph tt">nDeletes</tt> - <a class="xref" href="../references/OperatorModel.html#spldoc_reference_operator_model__context__metrics_kind_counter">Counter</a></dt>
 
     <dd class="dd">
 
