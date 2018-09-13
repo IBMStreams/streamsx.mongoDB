@@ -172,6 +172,10 @@ sub main::generate($$) {
    	  my $name = $attribute->getName();
    	  if ($attribute->hasAssignmentWithOutputFunction()) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
+   		  my $upsert = ($operation =~ /^Upsert/) ? 'true' : 'false';
+   		  my $multi = ($operation =~ /Documents/) ? 'true' : 'false';
+   		  my $isJson =  ($operation =~ /AsJson$/) ? 1 : 0;
+   
    		  if ($operation eq 'AsIs') {
    			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    		  
@@ -194,7 +198,7 @@ sub main::generate($$) {
    			}
    			else {
    				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
-   				if (BSONCommon::keyLess($expr->getSPLType())) {
+   				if (!$isJson && BSONCommon::keyLess($expr->getSPLType())) {
    					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
    				}
    			}
@@ -224,7 +228,7 @@ sub main::generate($$) {
    print '		{', "\n";
    print '		', "\n";
    # [----- perl code -----]
-   			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
+   			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType, $isJson);
    			
    			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
@@ -288,23 +292,14 @@ sub main::generate($$) {
    }
    print "\n";
    print '			', "\n";
-   print '//			connPtr->';
-   print $BSONCommon::methods{$operation};
-   print '(buildDbCollection(';
-   print $db;
-   print ', ';
-   print $collection;
-   print '), b0.obj());', "\n";
    print '			';
-   				my $upsert = ($operation =~ /^Upsert/) ? 'true' : 'false';
-   				my $multi = ($operation =~ /Documents$/) ? 'true' : 'false';
    			
    print "\n";
    print '			connPtr->update(buildDbCollection(';
    print $db;
    print ', ';
    print $collection;
-   print '), findQueryBO, b0.obj(), ';
+   print '), findQueryBO, bsonObj, ';
    print $upsert;
    print ', ';
    print $multi;

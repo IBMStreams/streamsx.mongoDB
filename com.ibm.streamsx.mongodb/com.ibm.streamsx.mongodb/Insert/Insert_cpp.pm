@@ -104,6 +104,7 @@ sub main::generate($$) {
    	  my $name = $attribute->getName();
    	  if ($attribute->hasAssignmentWithOutputFunction()) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
+   		  my $isJson =  $operation =~ /AsJson$/ ? 1 : 0;
    		  if ($operation eq 'AsIs') {
    			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    		  
@@ -126,7 +127,7 @@ sub main::generate($$) {
    			}
    			else {
    				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
-   				if (BSONCommon::keyLess($expr->getSPLType())) {
+   				if (!$isJson && BSONCommon::keyLess($expr->getSPLType())) {
    					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
    				}
    			}
@@ -156,7 +157,7 @@ sub main::generate($$) {
    print '		{', "\n";
    print '		', "\n";
    # [----- perl code -----]
-   			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
+   			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType, $isJson);
    			
    			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
@@ -211,7 +212,7 @@ sub main::generate($$) {
    print $db;
    print ', ';
    print $collection;
-   print '), b0.obj());', "\n";
+   print '), bsonObj);', "\n";
    print '			const string & errorMsg = connPtr->getLastError();', "\n";
    print '			', "\n";
    print '			if (errorMsg == "") {', "\n";

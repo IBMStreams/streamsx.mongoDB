@@ -177,7 +177,7 @@ One output port is defined for use with custom output functions and optionally t
             <parameter name="data" type="T"/>
           </function>
           <function name="UpdateDocument" returnType="rstring">
-            <description>updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>updates one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring UpdateDocument(rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
@@ -192,12 +192,42 @@ One output port is defined for use with custom output functions and optionally t
             <parameter name="data" type="T"/>
           </function>
           <function name="UpdateDocuments" returnType="rstring">
-            <description>updates all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>updates all 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring UpdateDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
             <parameter name="key" type="rstring"/>
             <parameter name="data" type="T"/>
+          </function>
+          <function name="UpdateDocumentAsJson" returnType="rstring">
+            <description>updates one instance of rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpdateDocumentAsJson" returnType="rstring">
+            <description>updates one instance of rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpdateDocumentsAsJson" returnType="rstring">
+            <description>updates all rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpdateDocumentsAsJson" returnType="rstring">
+            <description>updates all rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="json" type="rstring"/>
           </function>
           <function name="UpsertDocument" returnType="rstring">
             <description>upserts one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
@@ -207,7 +237,7 @@ One output port is defined for use with custom output functions and optionally t
             <parameter name="data" type="T"/>
           </function>
           <function name="UpsertDocument" returnType="rstring">
-            <description>upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring UpsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
@@ -222,12 +252,42 @@ One output port is defined for use with custom output functions and optionally t
             <parameter name="data" type="T"/>
           </function>
           <function name="UpsertDocuments" returnType="rstring">
-            <description>upserts all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>upserts all 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T&gt; rstring UpsertDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
             <parameter name="db" type="rstring"/>
             <parameter name="collection" type="rstring"/>
             <parameter name="key" type="rstring"/>
             <parameter name="data" type="T"/>
+          </function>
+          <function name="UpsertDocumentAsJson" returnType="rstring">
+            <description>upserts one instance of rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpsertDocumentAsJson" returnType="rstring">
+            <description>upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpsertDocumentsAsJson" returnType="rstring">
+            <description>upserts all rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="json" type="rstring"/>
+          </function>
+          <function name="UpsertDocumentsAsJson" returnType="rstring">
+            <description>upserts all rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="json" type="rstring"/>
           </function>
         </outputFunctions>
         <parametersDescription/>
@@ -318,6 +378,21 @@ One output port is defined for use with custom output functions and optionally t
             <parameter name="collection" type="rstring"/>
             <parameter name="key" type="rstring"/>
             <parameter name="data" type="T"/>
+          </function>
+          <function name="InsertDocumentAsJson" returnType="rstring">
+            <description>writes rstring JSON 'data' to 'db.coolection'.</description>
+            <prototype>rstring InsertDocumentAsJson(rstring db, rstring collection, rstring data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="data" type="rstring"/>
+          </function>
+          <function name="InsertDocumentAsJson" returnType="rstring">
+            <description>writes rstring JSON 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring InsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring data)</prototype>
+            <parameter name="db" type="rstring"/>
+            <parameter name="collection" type="rstring"/>
+            <parameter name="key" type="rstring"/>
+            <parameter name="data" type="rstring"/>
           </function>
         </outputFunctions>
         <parametersDescription/>

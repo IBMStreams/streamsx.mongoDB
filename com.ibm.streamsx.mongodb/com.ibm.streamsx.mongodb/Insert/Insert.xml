@@ -43,6 +43,14 @@ One output port is defined for use with custom output functions and optionally t
             <description>writes 'data' to 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring InsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
+          <function pseudoFunction="true">
+            <description>writes rstring JSON 'data' to 'db.coolection'.</description>
+            <prototype>rstring InsertDocumentAsJson(rstring db, rstring collection, rstring data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>writes rstring JSON 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring InsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring data)</prototype>
+          </function>
         </customOutputFunction>
       </customOutputFunctions>
       <libraryDependencies>
