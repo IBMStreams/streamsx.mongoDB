@@ -45,6 +45,8 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 	  my $name = $attribute->getName();
 	  if ($attribute->hasAssignmentWithOutputFunction()) {
 		  my $operation = $attribute->getAssignmentOutputFunctionName();
+		  my $isJson = ($operation =~ /AsJson$/) ? 1 : 0;
+
 		  if ($operation eq 'AsIs') {
 			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
 		  %>
@@ -61,7 +63,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 			}
 			else {
 				$expr = $attribute->getAssignmentOutputFunctionParameterValueAt(2);
-				if (BSONCommon::keyLess($expr->getSPLType())) {
+				if (!$isJson && BSONCommon::keyLess($expr->getSPLType())) {
 					SPL::CodeGen::errorln("The type '%s' of the expression '%s' requires additional key parameter.", $expr->getSPLType(), $expr->getSPLExpression(), $expr->getSourceLocation());
 				}
 			}
@@ -86,7 +88,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 		{
 		
 <%# [----- perl code -----]
-			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType);
+			BSONCommon::buildBSONObjectWithKey($exprLocation, $key, $cppExpr, $splType, $isJson);
 			
 			my $db = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
 			my $collection = $attribute->getAssignmentOutputFunctionParameterValueAt(1)->getCppExpression();
@@ -110,7 +112,7 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 				connPtr->setDbProfilingLevel(<%=$db%>,  ProfileAll);
 			<%}%>
 			
-			connPtr->insert(buildDbCollection(<%=$db%>, <%=$collection%>), b0.obj());
+			connPtr->insert(buildDbCollection(<%=$db%>, <%=$collection%>), bsonObj);
 			const string & errorMsg = connPtr->getLastError();
 			
 			if (errorMsg == "") {

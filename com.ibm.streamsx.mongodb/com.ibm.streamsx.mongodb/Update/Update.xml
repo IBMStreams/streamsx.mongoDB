@@ -43,7 +43,7 @@ One output port is defined for use with custom output functions and optionally t
             <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>updates one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring UpdateDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
           <function pseudoFunction="true">
@@ -51,15 +51,31 @@ One output port is defined for use with custom output functions and optionally t
             <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>updates all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>updates all 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring UpdateDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates one instance of rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates one instance of rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates all rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>updates all rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
           </function>
           <function pseudoFunction="true">
             <description>upserts one instance of 'data' in 'db.coolection'. T can be of type tuple or map only.</description>
             <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring UpsertDocument(rstring db, rstring collection, rstring key, T data)</prototype>
           </function>
           <function pseudoFunction="true">
@@ -67,8 +83,24 @@ One output port is defined for use with custom output functions and optionally t
             <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, T data)</prototype>
           </function>
           <function pseudoFunction="true">
-            <description>upserts all 'data' to 'db.coolection' with a 'key' as a root element.</description>
+            <description>upserts all 'data' in 'db.coolection' with a 'key' as a root element.</description>
             <prototype>&lt;any T> rstring UpsertDocuments(rstring db, rstring collection, rstring key, T data)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts one instance of rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts all rstring 'json' in 'db.coolection'.</description>
+            <prototype>rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring json)</prototype>
+          </function>
+          <function pseudoFunction="true">
+            <description>upserts all rstring 'json' in 'db.coolection' with a 'key' as a root element.</description>
+            <prototype>rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</prototype>
           </function>
         </customOutputFunction>
       </customOutputFunctions>

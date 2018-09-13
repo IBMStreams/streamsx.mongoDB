@@ -31,9 +31,13 @@ sub buildBSONObject(@) {
 
 
 sub buildBSONObjectWithKey(@) {
-	my ($exprLocation, $attrName, $cppExpr, $splType) = @_;
+	my ($exprLocation, $attrName, $cppExpr, $splType, $isJson) = @_;
+
+	my $buildBSONObjectFunc = $isJson ? \&buildBSONObjectFromJson : \&buildBSONObject;
+	my $bsonObj = 'b0.obj()';
 	my $seq = 0;
-	
+
+	# if $attrName is not empty then create a root element
 	if ($attrName) {
 		$seq++;
 	
@@ -41,19 +45,30 @@ print qq(
 	BSONObjBuilder b0;
 );
 	
-	}
-		
-	my ($appendFunction, $value) = BSONCommon::buildBSONObject($exprLocation, $cppExpr, $splType, $seq);
-	
-	if ($attrName) {
+		#my ($appendFunction, $value) = BSONCommon::buildBSONObject($exprLocation, $cppExpr, $splType, $seq);
+		my ($appendFunction, $value) = $buildBSONObjectFunc->($exprLocation, $cppExpr, $splType, $seq);
 
 print qq(
 	b0.$appendFunction($attrName, $value);
 );
 	
 	}
+	else {
+		my ($appendFunction, $value) = $buildBSONObjectFunc->($exprLocation, $cppExpr, $splType, $seq);
+		$bsonObj = $value;
+	}
+
+print qq(
+	const BSONObj & bsonObj = $bsonObj;
+);
+
 }
 
+
+sub buildBSONObjectFromJson(@) {
+	my ($exprLocation, $cppExpr) = @_;
+	return ('append', "fromjson($cppExpr)");
+}
 
 sub buildBSONObjectFromListOrSet(@) {
 	my ($exprLocation, $cppExpr, $splType, $seq) = @_;
