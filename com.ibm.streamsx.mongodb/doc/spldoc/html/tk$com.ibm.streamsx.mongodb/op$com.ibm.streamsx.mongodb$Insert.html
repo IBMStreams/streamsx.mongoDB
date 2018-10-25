@@ -22,7 +22,7 @@
 <div class="body refbody">
 <div class="section">
 <p class="p">
-<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Insert</p>
+<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.1</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Insert</p>
 
 </div>
 
@@ -35,9 +35,11 @@
 <p class="p">Insert writes SPL data to MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format. The operator supports multiple threads.
 </p>
 
-<div class="p">Insert has one custom output function:
+<div class="p">Insert has two custom output functions:
 <ul class="ul">
 <li class="li"> InsertDocument writes data (any SPL expression) with or without a specified root tag.</li>
+
+<li class="li"> InsertDocumentAsJson writes rstring 'json' (any SPL expression) with or without a specified root tag.</li>
 
 </ul>
 
@@ -208,6 +210,30 @@
             <dd class="dd">
 
 <p class="p">writes 'data' to 'db.coolection' with a 'key' as a root element.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring InsertDocumentAsJson(rstring db, rstring collection, rstring data)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">writes rstring JSON 'data' to 'db.coolection'.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring InsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring data)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">writes rstring JSON 'data' to 'db.coolection' with a 'key' as a root element.
 </p>
               <p class="p"/>
 

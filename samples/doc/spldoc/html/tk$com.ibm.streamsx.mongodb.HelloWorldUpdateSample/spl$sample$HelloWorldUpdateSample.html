@@ -96,7 +96,7 @@
  		stream&lt;rstring greeting2&gt; B2Stream = Beacon()  {
              param iterations: 1;
              output B2Stream :
-             	greeting2 = "Hello again";
+             	greeting2 = '{"Hello" : "again"}';
          }
          
          stream&lt;rstring error1&gt; MongoSink = Update(B1Stream; B2Stream) {
@@ -139,8 +139,12 @@
  				 */
          		error1 = UpdateDocument("streams", "sample", B1Stream); // Updates one document where 'greeting1' exists
  //        		error1 = UpdateDocuments("streams", "sample", B1Stream); // Updates all documents where 'greeting1' exists
- //        		error1 = UpsertDocument("streams", "sample", "$set", B2Stream); // Upserts one document where 'greeting1' exists
- //        		error1 = UpsertDocuments("streams", "sample", "$set", B2Stream); // Upserts all document where 'greeting1' exists
+ //        		error1 = UpsertDocument("streams", "sample", "$set", B1Stream); // Upserts one document where 'greeting1' exists
+ //        		error1 = UpsertDocuments("streams", "sample", "$set", B1Stream); // Upserts all document where 'greeting1' exists
+ //        		error1 = UpdateDocumentAsJson("streams", "sample", greeting2); // Updates one document with JSON where 'greeting1' exists
+ //        		error1 = UpdateDocumentsAsJson("streams", "sample", greeting2); // Updates all documents with JSON where 'greeting1' exists
+ //        		error1 = UpsertDocumentAsJson("streams", "sample", "$set", greeting2); // Upserts one document with JSON where 'greeting1' exists
+ //        		error1 = UpsertDocumentsAsJson("streams", "sample", "$set", greeting2); // Upserts all documents with JSON where 'greeting1' exists
          }
          
  		/**

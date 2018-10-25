@@ -58,7 +58,7 @@
 </div>
 
 <div class="section splgraph">
-  <embed class="image" src="../../image/tk$com.ibm.streamsx.mongodb.HelloWorldQuerySample/op$sample$HelloWorldQuerySample.svg" width="337" height="109"/>
+  <embed class="image" src="../../image/tk$com.ibm.streamsx.mongodb.HelloWorldQuerySample/op$sample$HelloWorldQuerySample.svg" width="232" height="109"/>
 </div>
 
 <div class="section">
@@ -138,8 +138,8 @@
          	/*
          	 * Uncomment username/password parameters for a default authentication method
          	 */
-         		username : getSubmissionTimeValue("username", "mongouser");
-         		password : getSubmissionTimeValue("password", "passw0rd");
+ //        		username : getSubmissionTimeValue("username", "mongouser");
+ //        		password : getSubmissionTimeValue("password", "passw0rd");
  
          	/*
          	 * Uncomment profiling parameter to enable profiling mode
@@ -150,16 +150,9 @@
          		greeting1 = QueryDocumentField();
          }
  
-        () as DSink = FileSink(QueryResult1)   {
-             param
-                 file : "/dev/stdout";
-                 flush : 1u;
-                 quoteStrings : false;
-         }
- 
-  		/**
- 		 * Get all documents, assign each document as JSON, drop _id field.
- 		 */
+ // 		/**
+ //		 * Get all documents, assign each document as JSON, drop _id field.
+ //		 */
  //        stream&lt;rstring json&gt; QueryResult2 as QueryResult = Query(beaconOutStream) {
  //        	param
  //        		dbHost : "localhost";
@@ -169,7 +162,7 @@
  //        	output QueryResult :
  //        		json = QueryDocumentFieldAsJson();
  //        }
-         
+ //        
  // 		/**
  //		 * Get all documents, assign 'greeting4' array field if exists, the resulting tuples are:
  //		 * {greeting4=["Hello","world"]}

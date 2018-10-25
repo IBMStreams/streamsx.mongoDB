@@ -22,7 +22,7 @@
 <div class="body refbody">
 <div class="section">
 <p class="p">
-<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.0</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Update</p>
+<a class="xref" href="../toolkits/toolkits.html">Toolkits</a> &gt; <a class="xref" href="tk$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb 2.0.1</a> &gt; <a class="xref" href="ns$com.ibm.streamsx.mongodb.html">com.ibm.streamsx.mongodb</a> &gt; Update</p>
 
 </div>
 
@@ -35,7 +35,7 @@
 <p class="p">Update updates/upserts SPL data in MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format. The operator supports multiple threads.
 </p>
 
-<div class="p">Update has four custom output function:
+<div class="p">Update has eight custom output function:
 <ul class="ul">
 <li class="li"> UpdateDocument updates data in one document (any SPL expression) with or without a specified root tag.</li>
 
@@ -44,6 +44,14 @@
 <li class="li"> UpsertDocument upserts data in one document (any SPL expression) with or without a specified root tag.</li>
 
 <li class="li"> UpsertDocuments upserts data in all documents (any SPL expression) with or without a specified root tag.</li>
+
+<li class="li"> UpdateDocumentAsJson updates rstring 'json' in one document (any SPL expression) with or without a specified root tag.</li>
+
+<li class="li"> UpdateDocumentsAsJson updates rstring 'json' in all documents (any SPL expression) with or without a specified root tag.</li>
+
+<li class="li"> UpsertDocumentAsJson upserts rstring 'json' in one document (any SPL expression) with or without a specified root tag.</li>
+
+<li class="li"> UpsertDocumentsAsJson upserts rstring 'json' in all documents (any SPL expression) with or without a specified root tag.</li>
 
 </ul>
 
@@ -213,7 +221,7 @@
 
             <dd class="dd">
 
-<p class="p">updates one instance of 'data' to 'db.coolection' with a 'key' as a root element.
+<p class="p">updates one instance of 'data' in 'db.coolection' with a 'key' as a root element.
 </p>
               <p class="p"/>
 
@@ -237,7 +245,55 @@
 
             <dd class="dd">
 
-<p class="p">updates all 'data' to 'db.coolection' with a 'key' as a root element.
+<p class="p">updates all 'data' in 'db.coolection' with a 'key' as a root element.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">updates one instance of rstring 'json' in 'db.coolection'.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpdateDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">updates one instance of rstring 'json' in 'db.coolection' with a 'key' as a root element.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">updates all rstring 'json' in 'db.coolection'.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpdateDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">updates all rstring 'json' in 'db.coolection' with a 'key' as a root element.
 </p>
               <p class="p"/>
 
@@ -261,7 +317,7 @@
 
             <dd class="dd">
 
-<p class="p">upserts one instance of 'data' to 'db.coolection' with a 'key' as a root element.
+<p class="p">upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.
 </p>
               <p class="p"/>
 
@@ -285,7 +341,55 @@
 
             <dd class="dd">
 
-<p class="p">upserts all 'data' to 'db.coolection' with a 'key' as a root element.
+<p class="p">upserts all 'data' in 'db.coolection' with a 'key' as a root element.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">upserts one instance of rstring 'json' in 'db.coolection'.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpsertDocumentAsJson(rstring db, rstring collection, rstring key, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">upserts one instance of 'data' in 'db.coolection' with a 'key' as a root element.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">upserts all rstring 'json' in 'db.coolection'.
+</p>
+              <p class="p"/>
+
+            </dd>
+
+                        
+              <dt class="dt dlterm">
+                <tt class="ph tt">   rstring UpsertDocumentsAsJson(rstring db, rstring collection, rstring key, rstring json)</tt>              </dt>
+
+            <dd class="dd">
+
+<p class="p">upserts all rstring 'json' in 'db.coolection' with a 'key' as a root element.
 </p>
               <p class="p"/>
 

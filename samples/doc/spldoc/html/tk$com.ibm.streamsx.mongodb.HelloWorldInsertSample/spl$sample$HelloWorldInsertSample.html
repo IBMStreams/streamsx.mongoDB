@@ -99,7 +99,8 @@
              	greeting2 = "Hello again";
          }
          
-         stream&lt;rstring error1, rstring error2, rstring error3, rstring error4, rstring error5, rstring error6&gt; MongoSink = Insert(B1Stream; B2Stream){
+         stream&lt;rstring error1, rstring error2, rstring error3, rstring error4, rstring error5, rstring error6, rstring error7, rstring error8&gt; MongoSink =
+         	Insert(B1Stream; B2Stream) {
          	param
          		dbHost : "localhost";
          		
@@ -125,8 +126,8 @@
          	/*
          	 * Uncomment username/password parameters for a default authentication method
          	 */
-         		username : getSubmissionTimeValue("username", "mongouser");
-         		password : getSubmissionTimeValue("password", "passw0rd");
+ //        		username : getSubmissionTimeValue("username", "mongouser");
+ //        		password : getSubmissionTimeValue("password", "passw0rd");
  
          	/*
          	 * Uncomment profiling parameter to enable profiling mode
@@ -162,7 +163,25 @@
  				 * Store a constant map (map/tuple doesn't require key, but can use it to add a root key), the resulting document is:
  				 * { "_id" : ObjectId("53c795f7e66ebea0c454c813"), "greeting5_1" : "Hello", "greeting5_2" : "world" }
  				 */
-         		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"});
+         		error5 = InsertDocument("streams", "sample", {"greeting5_1" : "Hello", "greeting5_2" : "world"}),
+ 
+         		/**
+ 				 * Store a constant rstring JSON, the resulting document is:
+ 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c814"), "greeting6_1" : "Hello", "greeting6_2" : "world" }
+ 				 */
+         		error6 = InsertDocumentAsJson("streams", "sample", '{"greeting6_1" : "Hello", "greeting6_2" : "world"}'),
+ 
+         		/**
+ 				 * Store a constant rstring JSON (doesn't require key, but can use it to add a root key), the resulting document is:
+ 				 * { "_id" : ObjectId("53c795f7e66ebea0c454c815"), "greeting7_1" : { "greeting7_2" : [ "Hello", "world" ] } }
+ 				 */
+         		error7 = InsertDocumentAsJson("streams", "sample", "greeting7_1", '{"greeting7_2" : ["Hello", "world"]}'),
+ 
+         		/**
+ 				 * 	Store a constant rstring JSON with wrong syntax, the exception is:
+ 				 * FailedToParse: First character in field must be [A-Za-z$_]: offset:1 of:{[ : "Hello world"}
+ 				 */
+         		error8 = InsertDocumentAsJson("streams", "sample", '{[ : "Hello world"}');
          }
          
  		/**
