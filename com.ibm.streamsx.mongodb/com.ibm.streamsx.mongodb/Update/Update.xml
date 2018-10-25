@@ -6,11 +6,15 @@
 Update updates/upserts SPL data in MongoDB collection. No predefined db schema is required, the data is automatically mapped from SPL to BSON format.
 The operator supports multiple threads.
 
-Update has four custom output function:
+Update has eight custom output function:
 * UpdateDocument updates data in one document (any SPL expression) with or without a specified root tag.
 * UpdateDocuments updates data in all documents (any SPL expression) with or without a specified root tag.
 * UpsertDocument upserts data in one document (any SPL expression) with or without a specified root tag.
 * UpsertDocuments upserts data in all documents (any SPL expression) with or without a specified root tag.
+* UpdateDocumentAsJson updates rstring 'json' in one document (any SPL expression) with or without a specified root tag.
+* UpdateDocumentsAsJson updates rstring 'json' in all documents (any SPL expression) with or without a specified root tag.
+* UpsertDocumentAsJson upserts rstring 'json' in one document (any SPL expression) with or without a specified root tag.
+* UpsertDocumentsAsJson upserts rstring 'json' in all documents (any SPL expression) with or without a specified root tag.
 
 Multiple input ports are allowed and their attributes can be used in multiple UpdateDocument calls, but cannot be mixed in the same call.
 
