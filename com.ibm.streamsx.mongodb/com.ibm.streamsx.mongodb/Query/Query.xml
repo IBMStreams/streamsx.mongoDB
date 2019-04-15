@@ -105,7 +105,7 @@ One output port is defined for use with custom output functions, multiple tuples
       </parameter>
       <parameter>
         <name>username</name>
-        <description>The mandatory 'rstring' parameter specifies MongoDB username.</description>
+        <description>The optional 'rstring' parameter specifies MongoDB username.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
@@ -114,7 +114,7 @@ One output port is defined for use with custom output functions, multiple tuples
       </parameter>
       <parameter>
         <name>password</name>
-        <description>The mandatory 'rstring' parameter specifies MongoDB password.</description>
+        <description>The optional 'rstring' parameter specifies MongoDB password.</description>
         <optional>true</optional>
         <rewriteAllowed>true</rewriteAllowed>
         <expressionMode>AttributeFree</expressionMode>
