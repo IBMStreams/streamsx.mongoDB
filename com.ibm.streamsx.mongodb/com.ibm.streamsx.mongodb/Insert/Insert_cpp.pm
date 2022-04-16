@@ -104,7 +104,8 @@ sub main::generate($$) {
    	  my $name = $attribute->getName();
    	  if ($attribute->hasAssignmentWithOutputFunction()) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
-   		  my $isJson =  $operation =~ /AsJson$/ ? 1 : 0;
+   		  my $isJson = ($operation =~ /AsJson$/) ? 1 : 0;
+   
    		  if ($operation eq 'AsIs') {
    			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
    		  
@@ -178,17 +179,17 @@ sub main::generate($$) {
    print ') {', "\n";
    print '					SPLAPPLOG(L_ERROR, "Trying to reconnect to " << ';
    print $dbHost;
-   print ' << ":" << ';
+   print ' << ":" << (';
    print $dbPort;
-   print ', "MongoDB Connect");', "\n";
+   print '), "MongoDB Connect");', "\n";
    print '					connPtr->isStillConnected();', "\n";
    print '				}', "\n";
    print '				else {', "\n";
    print '					THROW(SPL::SPLRuntimeOperator, "Connection to " << ';
    print $dbHost;
-   print ' << ":" << ';
+   print ' << ":" << (';
    print $dbPort;
-   print ' << " aborted");', "\n";
+   print ') << " aborted");', "\n";
    print '				}', "\n";
    print '			}', "\n";
    print '				', "\n";

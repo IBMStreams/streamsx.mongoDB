@@ -53,7 +53,8 @@ sub main::generate($$) {
    	$arg = 'Tuple const & tuple';
    	
    	for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
-   		$iports .= "IPort$i\Type const & $model->getInputPortAt($i)->getCppTupleName() = static_cast<IPort$i\Type const&>(tuple);\n" ;
+   		my $iport = $model->getInputPortAt($i)->getCppTupleName();
+   		$iports .= "IPort$i\Type const & $iport = static_cast<IPort$i\Type const&>(tuple);\n" ;
    	}
    }
    
@@ -174,7 +175,7 @@ sub main::generate($$) {
    		  my $operation = $attribute->getAssignmentOutputFunctionName();
    		  my $upsert = ($operation =~ /^Upsert/) ? 'true' : 'false';
    		  my $multi = ($operation =~ /Documents/) ? 'true' : 'false';
-   		  my $isJson =  ($operation =~ /AsJson$/) ? 1 : 0;
+   		  my $isJson = ($operation =~ /AsJson$/) ? 1 : 0;
    
    		  if ($operation eq 'AsIs') {
    			my $init = $attribute->getAssignmentOutputFunctionParameterValueAt(0)->getCppExpression();
@@ -262,17 +263,17 @@ sub main::generate($$) {
    print ') {', "\n";
    print '					SPLAPPLOG(L_ERROR, "Trying to reconnect to " << ';
    print $dbHost;
-   print ' << ":" << ';
+   print ' << ":" << (';
    print $dbPort;
-   print ', "MongoDB Connect");', "\n";
+   print '), "MongoDB Connect");', "\n";
    print '					connPtr->isStillConnected();', "\n";
    print '				}', "\n";
    print '				else {', "\n";
    print '					THROW(SPL::SPLRuntimeOperator, "Connection to " << ';
    print $dbHost;
-   print ' << ":" << ';
+   print ' << ":" << (';
    print $dbPort;
-   print ' << " aborted");', "\n";
+   print ') << " aborted");', "\n";
    print '				}', "\n";
    print '			}', "\n";
    print '				', "\n";
