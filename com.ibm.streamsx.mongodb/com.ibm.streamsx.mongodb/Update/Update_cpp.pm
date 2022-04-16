@@ -53,7 +53,8 @@ sub main::generate($$) {
    	$arg = 'Tuple const & tuple';
    	
    	for (my $i = 0; $i < $model->getNumberOfInputPorts(); $i++) {
-   		$iports .= "IPort$i\Type const & $model->getInputPortAt($i)->getCppTupleName() = static_cast<IPort$i\Type const&>(tuple);\n" ;
+   		my $iport = $model->getInputPortAt($i)->getCppTupleName();
+   		$iports .= "IPort$i\Type const & $iport = static_cast<IPort$i\Type const&>(tuple);\n" ;
    	}
    }
    
