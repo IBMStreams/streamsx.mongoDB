@@ -88,11 +88,11 @@ void MY_OPERATOR::process(Tuple const & tuple, uint32_t port) {
 
 	if(connPtr->isFailed()) {
 		if (<%=$autoReconnect%>) {
-			SPLAPPLOG(L_ERROR, "Trying to reconnect to " << <%=$dbHost%> << ":" << <%=$dbPort%>, "MongoDB Connect");
+			SPLAPPLOG(L_ERROR, "Trying to reconnect to " << <%=$dbHost%> << ":" << (<%=$dbPort%>), "MongoDB Connect");
 			connPtr->isStillConnected();
 		}
 		else {
-			THROW(SPL::SPLRuntimeOperator, "Connection to " << <%=$dbHost%> << ":" << <%=$dbPort%> << " aborted");
+			THROW(SPL::SPLRuntimeOperator, "Connection to " << <%=$dbHost%> << ":" << (<%=$dbPort%>) << " aborted");
 		}
 	}
 		
